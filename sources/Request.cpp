@@ -1106,11 +1106,11 @@ void Request::locationMatcher()
     if(rootLocIndex >= 0 && !_serv_conf.getLocs()[rootLocIndex].getRoot().empty())
         _serv_conf.setRoot(_serv_conf.getLocs()[rootLocIndex].getRoot());
 
-    if(_methode == "DELETE")
-    {
-        ResponseCode = 0;
-        throw ResponseCode;
-    }
+    // if(_methode == "DELETE")
+    // {
+    //     ResponseCode = 0;
+    //     throw ResponseCode;
+    // }
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
         _url.erase(1,2);
@@ -1192,6 +1192,7 @@ void Request::locationMatcher()
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
+            cout << "111111111111111111111111111111 -->" << pathToLocation << endl;
             ResponseCode = 404;
             throw ResponseCode;
         }
@@ -1661,14 +1662,14 @@ int Request::Check_Path(const char* path)
 
 void Request::DeleteMethod(const char* path)
 {
+    if(!_serv_conf.getLocs()[locIndex].locHasDELETEallowed())
+    {
+        ResponseCode = 405;
+        throw ResponseCode;
+    }
     if (Check_Path(path) == 204)
     {
         std::string pp = path;
-        if(pp.find(_serv_conf.getRoot()) == string::npos)
-        {
-            pp = _serv_conf.getRoot() + pp.substr(1);
-        }
-        
         if (isDirectoryCheck(pp.c_str()) == 0)
         {
             if (CheckPermissions(pp.c_str()) == true)
@@ -1881,7 +1882,7 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("DELETE"))
         {
-            DeleteMethod(_url.c_str());
+            DeleteMethod(pathToLocation.c_str());
         }
     }
     catch(...)
