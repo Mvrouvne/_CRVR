@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>403 - Forbidden</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white flex flex-col items-center justify-start pt-4">
+  <!-- 403 - Forbidden text -->
+  <h1 class="text-3xl font-semibold text-center mt-">403 - Forbidden</h1><br>
+  <!-- Top horizontal line -->
+  <div class="w-full border-t border-black"></div>
+  <!-- Back Home button -->
+  <button id="goBackButton" class="mt-4 px-4 py-2 bg-gray-800 text-white font-bold rounded hover:bg-gray-700 focus:outline-none focus:shadow-outline">
+    Back Home
+  </button>
+  <script>
+    document.getElementById('goBackButton').addEventListener('click', function() {
+      window.location.assign(window.location.origin);
+    });
+  </script>
+</body>
+</html>

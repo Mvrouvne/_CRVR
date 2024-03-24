@@ -1,0 +1,205 @@
+✅ check if there is no content type.
+
+✅ if content length + chunked and if no one
+
+✅ check for timeout if content length bigger than body
+
+if you request uri doesn't have “/” at the end => make a 301 redirection to request
+
+✅ test multiple client
+
+✅ directory inside directory
+
+✅ check URL when posting or deleting
+
+✅ check unallowed characters in the url in uploading
+
+✅ uri with “/” addeed at the end
+
+✅ upload autoindex off gives not found instead of forbidden
+
+✅ when i get a file inside directory i get 400 bad request in inspect elements instead of 200 OK
+
+✅ handle max_body_size -1;
+
+✅ if method is POST and no file fassi gal should be error (gives 400 for us)
+
+✅ if content type isnt there
+
+✅ if return exist, join it's value wih the root instead of the pattern
+
+✅ Check GET to get a directory inside another directory
+
+✅ add DONEREAD FLAG after finishing with GET
+
+✅ if content length is huge and body small and maxBodySize is small gives tooLarge
+
+✅ add multiple cgis in config with their path
+
+✅ create error pages if he deleted them
+
+✅ CHECK ERROR PAGE IN CONFIG WITH THE NEW generateErrorResponse
+
+✅ AddressSanitizer:DEADLYSIGNAL
+
+✅ if there is body with GET request it fails ( mra katfaili mra la )
+
+✅ if root is a location, everything after it should be accessible
+
+✅ http://localhost:8080/.s TEST THIS!!!
+
+✅ 141 exit problem
+
+✅ check upload path validity (POST but upload on)
+
+✅ if content length or chunked is 0 what should we respond with
+
+✅ when location Games redirect to uploads all files inside upload dont work
+
+✅ *********************** CHECK LOCATION ROOOOOOOOOOOOOOOOOOOOOTTTTTT for data --> /home/spvnky/Desktop/42_WebSegfhrv/;
+
+✅ change search for content type from loop to map["Content-Type]
+
+✅ Location root should be checked
+
+✅ check file path f POST (maybe cgi is here)
+
+✅ TEST HEAD METHOD 
+_________________________________________________________________________
+
+
+🛑 if you request uri doesn't have “/” at the end => make a 301 redirection to request
+
+🛑 REMOVE ALL THE EXITS! and error holders
+
+🛑 (std::cerr << "MIMEtypes file cannot be opened!" << std::endl;
+exit(EXIT_FAILURE);)
+
+
+🛑 CHECK if no location is provided (ERROR)
+
+🛑 CHECK HOST from postman
+
+🛑 CHECK DIR PERMS IN LOCATION MATCHING
+
+🛑 \http://localhost:8080/cgi-bin/hello.php GET with body in postman
+
+🛑 CHECK WHY WE CHANGE URL VALUE IN MATCHING LOC F L5ER
+_________________________________________________________________________
+
+
+CHEEEEEEEEEEEEEECK THIIIIIIIS -->  listingStream << getErrorPath(404);
+
+CHECK ROOT PATHS AND PATTERNS SHOULD ENDS WITH '/'
+
+Check ROOTS path from config
+
+CHECK point (DOT) in path in location matching
+
+
+upload dfj; works
+
+when index is lkfsdj it gives forbidden
+
+cgi timeout
+
+alias
+
+
+upload on data/
+
+timout should not be in main get
+
+check if root is directory
+
+slash should be added in every root
+
+
+
+CHECK TESTS
+{
+    ---> : http://127.0.0.1:8080//data/uploads/   =   remove consecutive SLASHS from _url
+    http://127.0.0.1:8080/data/uploads///////
+    http://127.0.0.1:8080/data////uploads
+}
+
+handle no hand and timout in cgi
+
+add filename to class for cgi POST
+
+check for execve status and add internal errors in cgi found errors
+
+http://localhost:8080/cgi-bin/hello.php?kjhs in this case cgi should be executed and response will be normal
+with 200 OK but it catches _url not found somewhere else
+
+FIX RESPONSE conflicts!!
+
+
+remove boundary
+
+lowercase all url
+
+timeout if client accepted and no request has been sent!!
+
+
+check if content
+
+multiple client timout doesnt work
+
+post in this with small body doesnt work
+
+printf "" | nc localhost 8080
+
+
+🛑 if send or recv fails put internal server error
+
+if (send or recv) fail (0 || -1) return and delete client without any response back
+
+check if all chunk was read in first time (should loop if 0\r\n was found from first read)
+
+(lsof -c webserv ==> command to check open files)
+
+add sgi check using kill(getpid(), SIGKILL) after execve and check for WIFEXITED
+
+always prefer / root as location no matter what, if / is not location then you can use matched location
+
+if its not http/1.1 give bad http version page
+
+if content length and chunked was not ther give length error page
+
+🛑 check for all recv and read if failed
+
+chdir to dir when executing cgi
+
+change generateError to Only sendHtml and check everything inside sendHtml even the CGI
+
+should i responde with the cookie
+
+Test Host = localhost:8080
+fix response!!
+
+remove REUSEPORT if (setsockopt(_socket_fd,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(option)) == -1)
+
+TEST post cgi with invalid path (Error: write ECONNRESET)
+
+Remove conssecutive SLASH from redirection
+
+Remove slash from loc in pattern
+
+changed cgi output from data/cgi-bin/cgi-output to full directory path + cgi-output (should be changed in response)
+
+Remove slash from loc in pattern (TEST SLASH AT THE END OF URL)
+
+http://127.0.0.1:8080/data/cgi-bin/dsdsf.sh         /usr/bin/sh: 0: cannot open /home/spvnky/Desktop/42_WebServ//data/cgi-bin/dsdsf.sh: No such file
+
+unlink("./data/cgi-bin/cgi-output"); 
+
+Handdle URL with slash or without --> ...../data
+
+change "./data/cgi-bin/cgi-output" path for cgi
+
+remove strerrno from std::cout << "Generate Error: " << strerror(errno) << std::endl;
+
+🛑 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL); ==> should we check for this fail
+
+lsof after cgi !!!!!!!!
