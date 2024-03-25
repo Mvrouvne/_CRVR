@@ -625,8 +625,6 @@ void Request::uploadCheckers()
             throw ResponseCode;
         }
         closedir(dir);
-        // std::cout << uploadPath << std::endl;
-        // exit (0);
     }
 }
 
@@ -896,13 +894,27 @@ void Request::firstComingRequest(string& myBuff, int len)
                 y << FileNumber;
                 std::string n;
                 y >> n;
-                fileName = uploadPath + "/file-number=" + n + "." + _contentType[_req_header["Content-Type"]];
+                std::string typo = _contentType[_req_header["Content-Type"]];
+                if (typo.empty())
+                    typo = "txt";
+                fileName = uploadPath + "/file-number=" + n + "." + typo;
+                if (_isFile(fileName.c_str()))
+                {
+                    while (_isFile(fileName.c_str()))
+                    {
+                        FileNumber++;
+                        std::stringstream y;
+                        y << FileNumber;
+                        std::string n;
+                        y >> n;
+                        fileName = uploadPath + "/file-number=" + n + "." + typo;
+                    }
+                }
                 outfile.open(fileName.c_str());
                 if (!outfile)
                 {
                     ResponseCode = 500;
                     throw ResponseCode;
-                    // errorHolder("outfile couldn't be opened!");
                 }
             }
             if (!myBuff.substr(endOfHeaders + 4).empty())
@@ -1189,14 +1201,21 @@ void Request::locationMatcher()
 
     if(!isDirectory(pathToLocation.c_str()) && !_isFile(pathToLocation.c_str()) && _url != "/favicon.ico")
     {
+        if(_serv_conf.getLocs()[locIndex].isRedirected())
+        {
+            _url = firstDirInPath;
+            ResponseCode = 301;
+            throw ResponseCode;
+        }
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
-            cout << "111111111111111111111111111111 -->" << pathToLocation << endl;
+            cout << "-->" << firstDirInPath << endl;
             ResponseCode = 404;
             throw ResponseCode;
         }
     }
+
     if(firstDirInPath[firstDirInPath.size() - 1] != '/')
     {
         _url += '/';
@@ -1479,8 +1498,8 @@ string Request::getContentType(string reference)
 {
 	map<string, string>::iterator it = _contentType.begin();
 	for(;it != _contentType.end(); it++)
-		if(reference == it->first)
-			return it->second;
+		if(reference == it->second)
+			return it->first;
 	// errorHolder("invalid content type");
 	return "";
 }
@@ -1582,14 +1601,20 @@ bool Request::RemoveDirectory(const char *path)
                     if (CheckPermissions(path_name.c_str()) == true)
                         RemoveDirectory(path_name.c_str());
                     else
+                    {
+                        closedir(ptr_dir);
                         return(false);
+                    }
                 }
                 else if(ptr_dirent->d_type == DT_REG)
                 {
                     if (CheckPermissions(path_name.c_str()) ==  true)
                         remove(path_name.c_str());
                     else
+                    {
+                        closedir(ptr_dir);
                         return(false);
+                    }
                 }
             }
         }
@@ -1796,7 +1821,9 @@ void Request::fileReqHandling(int clientSocket)
         if(!getContentType(_url.substr(_url.find('.') + 1)).empty())
             extent =  getContentType(_url.substr(_url.find('.') + 1));
         else
-            extent = ".txt";
+            extent = "text/plain";
+        // cout << "--> ext = " << getContentType(_url.substr(_url.find('.') + 1)) << endl;
+        // exit(0);
         sendHtmlResponseFile(clientSocket, 200, _errorStatus[200], pathToLocation, extent);
         ResponseCode = 0;
         if(ResponseSent)
@@ -1860,6 +1887,8 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
+            // std::cout << firstDirInPath << std::endl;
+            // exit (0);
             if(isDirectory(pathToLocation.c_str()))
             {
                 if(!hasReadAndWritePermissions(pathToLocation.c_str()))

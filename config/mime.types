@@ -712,7 +712,6 @@ pfx:application/x-pkcs12
 pgm:image/x-portable-graymap
 pgn:application/x-chess-pgn
 pgp:application/pgp-encrypted
-php:application/x-httpd-php
 pic:image/x-pict
 pkg:application/octet-stream
 pki:application/pkixcmp
@@ -849,7 +848,6 @@ sgi:image/sgi
 sgl:application/vnd.stardivision.writer-global
 sgm:text/sgml
 sgml:text/sgml
-sh:application/x-sh
 shar:application/x-shar
 shex:text/shex
 shf:application/shf+xml
