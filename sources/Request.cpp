@@ -1209,7 +1209,8 @@ void Request::locationMatcher()
         _url = pathToLocation.substr(_serv_conf.getLocs()[locIndex].getRoot().size());
     else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
         _url = pathToLocation.substr(_serv_conf.getRoot().size());
-
+    std::cout << "url = " << _url << std::endl;
+    std::cout << "pathToLocation = " << pathToLocation << std::endl;
     
 }
 
@@ -1720,6 +1721,7 @@ void Request::sendMovedPermanently(int clientfd, string moveTo)
 
 void Request::dirReqHandling(int clientSocket)
 {
+    
     if(hasDirectoryAccess(pathToLocation))
     {
         Location mainLoc = _serv_conf.getLocs()[locIndex];
@@ -1737,16 +1739,16 @@ void Request::dirReqHandling(int clientSocket)
             string fullPath;
             if(!mainLoc.getRoot().empty())
             {
-                fullPath = mainLoc.getRoot() + mainLoc.getIndex().substr(1);
+                fullPath = mainLoc.getRoot() + mainLoc.getIndex();
             }
             else if(mainLoc.getRoot().empty())
             {
-                fullPath = _serv_conf.getRoot() + mainLoc.getIndex().substr(1);
+                fullPath = _serv_conf.getRoot() + mainLoc.getIndex();
             }
+            fullPath = removeConsecutiveSlashes(fullPath);
             if(_isFile(fullPath.c_str()) && isUserPermitted(fullPath))
             {
-                sendHtmlResponseFile(clientSocket, 200, " OK", mainLoc.getRoot() + mainLoc.getIndex().substr(1), "text/html");
-                // doneRead = true;
+                sendHtmlResponseFile(clientSocket, 200, " OK", mainLoc.getRoot() + mainLoc.getIndex(), "text/html");
             }
             else if(_isFile(fullPath.c_str()) && !isUserPermitted(fullPath))
             {
@@ -1859,6 +1861,8 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
+            // cout << "-->" << pathToLocation << endl;
+            // exit(0);
             if(isDirectory(pathToLocation.c_str()))
             {
                 if(!hasReadAndWritePermissions(pathToLocation.c_str()))
@@ -1893,6 +1897,8 @@ void Request::handleContentRequest(int clientSocket)
         }
         if (ResponseCode)
         {
+            // cout << "-->" << pathToLocation << endl;
+            // exit(0);
             cout << "~~> ERROR CODE CATCHED = " << _errorStatus[ResponseCode] << "<~~" << endl;
             generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
         }
