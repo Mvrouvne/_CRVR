@@ -99,7 +99,7 @@ string &Location::getRoot(void)
 {
 	return _root;
 }
-string &Location::getIndex(void)
+string Location::getIndex(void)
 {
 	return _index;
 }

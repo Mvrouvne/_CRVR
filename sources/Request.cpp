@@ -70,6 +70,7 @@ Request::Request()
     ResponseSent = false;
 
     _partialChunkSize = "";
+    old_url = "";
     immediateResponse = 0;
     bytesRead = 0;
     chunkSize = 0;
@@ -141,6 +142,7 @@ Request &Request::operator=(const Request& obj)
 
     _expectCRLF = false;
     _partialChunkSize = "";
+    old_url = "";
 
     
     _isContentLength = false;
@@ -191,7 +193,7 @@ string &Request::getMethode(void)
 {
     return _methode;
 }
-string &Request::getUrl(void)
+string Request::getUrl(void)
 {
     return _url;
 }
@@ -279,30 +281,6 @@ void Request::setEpollFlag(bool flag)
 }
 void Request::setServConfig(Server &serv_conf)
 {
-    // (void)_map_servers;
-    // (void)flag;
-    // if(flag)
-    // {
-    //     // cout << "-->" << getReqHeader()["Host"] << endl;
-    //     // exit(0);
-    //     if(!getReqHeader()["Host"].empty())
-    //     {
-    //         string hostVal = getReqHeader()["Host"];
-    //         if(!hostVal.empty() && hostVal.find(":") != string::npos && hostVal.find(":") != 0 && hostVal.find(":") != hostVal.size())
-    //         {
-    //             string servNm = hostVal.substr(0, hostVal.find(":"));
-    //             // int servPort = _stoi(hostVal.substr(hostVal.find(":") + 1));
-
-    //             if(serverIndexFinder(servNm) != -1)
-    //             {
-    //                 setServConfig(_servers[serverIndexFinder(servNm)]);
-    //                 // cout << "~>" << getReqHeader()["Host"] << endl;
-    //                 // exit(0);
-    //             }
-    //         }
-    //     }
-    // }
-    // else
     _serv_conf = serv_conf;
 }
 void Request::setServersMap(map<int, Server> &servs_map)
@@ -505,6 +483,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
     if(cgiDone && ResponseCode == 200)
     {
         sendHtmlResponseFile(cli_fd, 200, " OK", fullPth, "text/html");
+        
         // if(ResponseSent)
         //     unlink(fullPth.c_str()); // remove output file after reading the content for CGI
     }
@@ -1201,12 +1180,12 @@ void Request::locationMatcher()
 
     if(!isDirectory(pathToLocation.c_str()) && !_isFile(pathToLocation.c_str()) && _url != "/favicon.ico")
     {
-        if(_serv_conf.getLocs()[locIndex].isRedirected())
-        {
-            _url = firstDirInPath;
-            ResponseCode = 301;
-            throw ResponseCode;
-        }
+        // if(_serv_conf.getLocs()[locIndex].isRedirected())
+        // {
+        //     _url = firstDirInPath;
+        //     ResponseCode = 301;
+        //     throw ResponseCode;
+        // }
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
@@ -1224,13 +1203,15 @@ void Request::locationMatcher()
     }
 
     pureLoc = _url;
-
     if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
         _url = pathToLocation.substr(_serv_conf.getLocs()[locIndex].getRoot().size());
     else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
         _url = pathToLocation.substr(_serv_conf.getRoot().size());
 
-    
+    if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected())
+        pathToLocation = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
+        // indexFullPath = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
+    // exit(0);
 }
 
 void Request::Requesting(int _socFd)
@@ -1286,6 +1267,7 @@ string charToString(char buff[])
 
 void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string status, string filePath, string cnttype) 
 {
+    
     if(infile.is_open())
     {
         memset(_toRead, 0, SIZE);
@@ -1295,9 +1277,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
         {
             ResponseSent = true;
             return;
-            
-            // ResponseCode = 500;
-            // throw ResponseCode;
         }
         if(infile.eof())
         {
@@ -1312,18 +1291,18 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             infile.close();
             ResponseSent = true;
             return;
-            // ResponseCode = 500;
-            // throw ResponseCode;
         }
-        // exit (0);
     }
     else if (!infile.is_open()) 
     {
-        // string response;
-        // infile.open(filePath.c_str());
-        // struct stat flstat;
-        // stat(filePath.c_str(), &flstat);
-
+        // static int i;
+        // cout << "******* >>" << ResponseCode << endl;
+        // if(i == 2)
+        // {
+        //     cout << "-->" << ResponseCode << endl;
+        //     exit(0);
+        // }
+        // i++;
         if(!_firstReadedtry && !cgiDone && !cgiTrue)
         {
             string response;
@@ -1346,6 +1325,14 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             filePath = pathToLocation.substr(0, pathToLocation.find_last_of('/')) + "/cgi-output-" + intToString(cgiFileN++);
             filePathstr = filePath;
             infile.open(filePath.c_str());
+            if(infile.fail())
+            {
+                ResponseSent = true; ///////////////////////////////////////////
+                // throw ResponseCode;
+                return ;
+                cout << "******* >>" << filePath << endl;
+                exit(0);
+            }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
             _firstReadedtry = true;
@@ -1738,7 +1725,7 @@ void Request::sendMovedPermanently(int clientfd, string moveTo)
     stringstream httpResponse;
     httpResponse << "HTTP/1.1 " << 301 << _errorStatus[301] << "\r\n"
     << "Location: "<< moveTo << "\r\n"
-    << "\r\n";                                                                                                                                                
+    << "\r\n";
     send(clientfd, httpResponse.str().c_str(), httpResponse.str().length(), 0);
     ResponseSent = true;
     ResponseCode = 0;
@@ -1746,6 +1733,7 @@ void Request::sendMovedPermanently(int clientfd, string moveTo)
 
 void Request::dirReqHandling(int clientSocket)
 {
+    
     if(hasDirectoryAccess(pathToLocation))
     {
         Location mainLoc = _serv_conf.getLocs()[locIndex];
@@ -1753,28 +1741,31 @@ void Request::dirReqHandling(int clientSocket)
         // cheking it's return
         if(mainLoc.isRedirected())
         {   
+            cout << "----cc----------->" << pathToLocation << endl;
             sendMovedPermanently(clientSocket, _serv_conf.getLocs()[locIndex].getRedirection());
             throw ResponseCode;
         }
 
         // cheking index
-        else if(mainLoc.isIndexed())
+        else if(mainLoc.isIndexed() && !cgiDone)
         {
-            string fullPath;
-            if(!mainLoc.getRoot().empty())
+            std::cout << "DKHAAL NORMAL" << std::endl;
+            pathToLocation += indexFileOnly;
+            // string fullPath;
+            // if(!mainLoc.getRoot().empty())
+            //     fullPath = mainLoc.getRoot() + mainLoc.getIndex();
+            // else if(mainLoc.getRoot().empty())
+            //     fullPath = _serv_conf.getRoot() + mainLoc.getIndex();
+            
+            pathToLocation = removeConsecutiveSlashes(pathToLocation);
+            string ext = pathToLocation.substr(pathToLocation.find_last_of('.') + 1);
+            if(_isFile(pathToLocation.c_str()) && isUserPermitted(pathToLocation))
             {
-                fullPath = mainLoc.getRoot() + mainLoc.getIndex().substr(1);
+                sendHtmlResponseFile(clientSocket, 200, " OK", pathToLocation, getContentType(ext));
+                // ResponseCode = 200;
+                // throw ResponseCode;
             }
-            else if(mainLoc.getRoot().empty())
-            {
-                fullPath = _serv_conf.getRoot() + mainLoc.getIndex().substr(1);
-            }
-            if(_isFile(fullPath.c_str()) && isUserPermitted(fullPath))
-            {
-                sendHtmlResponseFile(clientSocket, 200, " OK", mainLoc.getRoot() + mainLoc.getIndex().substr(1), "text/html");
-                // doneRead = true;
-            }
-            else if(_isFile(fullPath.c_str()) && !isUserPermitted(fullPath))
+            else if(_isFile(pathToLocation.c_str()) && !isUserPermitted(pathToLocation))
             {
                 ResponseCode = 403;
                 throw ResponseCode;
@@ -1822,8 +1813,6 @@ void Request::fileReqHandling(int clientSocket)
             extent =  getContentType(_url.substr(_url.find('.') + 1));
         else
             extent = "text/plain";
-        // cout << "--> ext = " << getContentType(_url.substr(_url.find('.') + 1)) << endl;
-        // exit(0);
         sendHtmlResponseFile(clientSocket, 200, _errorStatus[200], pathToLocation, extent);
         ResponseCode = 0;
         if(ResponseSent)
@@ -1887,10 +1876,16 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
-            // std::cout << firstDirInPath << std::endl;
-            // exit (0);
+            // exit(0);
+            if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected()
+                && _isFile(pathToLocation.c_str()))
+            {
+                indexFileOnly = pathToLocation.substr(pathToLocation.find_last_of("/") + 1);
+                pathToLocation = pathToLocation.substr(0, pathToLocation.find_last_of("/") + 1);
+            }
             if(isDirectory(pathToLocation.c_str()))
             {
+                
                 if(!hasReadAndWritePermissions(pathToLocation.c_str()))
                 {
                     ResponseCode = 403;
@@ -1900,6 +1895,8 @@ void Request::handleContentRequest(int clientSocket)
             }
             else if(_isFile(pathToLocation.c_str()))
             {
+                // std::cout << pathToLocation << std::endl;
+                // exit (0);
                 fileReqHandling(clientSocket);
             }
             else if (!cgiDone)
@@ -1916,8 +1913,12 @@ void Request::handleContentRequest(int clientSocket)
     }
     catch(...)
     {
+        cout << "->" << ResponseCode << " ---- " << boolalpha << ResponseSent << endl;
+        // exit(0);
         if(ResponseCode == 301)
         {
+            // cout << "---->" << pathToLocation << endl;
+            // exit(0);
             sendMovedPermanently(clientSocket, _url);
             ResponseCode = 0;
         }

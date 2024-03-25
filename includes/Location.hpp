@@ -30,7 +30,7 @@ class Location
         string &getPattern(void);
         string &getAutoindex(void);
         string &getRoot(void);
-        string &getIndex(void);
+        string getIndex(void);
         string &getRedirection(void);
         vector<string> &getUpload(void);
         string &getCgi(void);

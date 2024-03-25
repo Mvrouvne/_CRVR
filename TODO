@@ -216,3 +216,5 @@ check cgi-output 500 Internal Server Error Status
 check if a location pattern is like /hello/ll
 
 🛑 IF INDEX IS GIVEN AS CGI, IT SHOULD BE TREATED AS CGI
+
+CHECK FOR DUPLICATED ATTRIBUTES IN LOCATION
