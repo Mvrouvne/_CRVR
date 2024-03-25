@@ -70,6 +70,7 @@ Request::Request()
     ResponseSent = false;
 
     _partialChunkSize = "";
+    old_url = "";
     immediateResponse = 0;
     bytesRead = 0;
     chunkSize = 0;
@@ -141,6 +142,7 @@ Request &Request::operator=(const Request& obj)
 
     _expectCRLF = false;
     _partialChunkSize = "";
+    old_url = "";
 
     
     _isContentLength = false;
@@ -191,7 +193,7 @@ string &Request::getMethode(void)
 {
     return _methode;
 }
-string &Request::getUrl(void)
+string Request::getUrl(void)
 {
     return _url;
 }
@@ -279,30 +281,6 @@ void Request::setEpollFlag(bool flag)
 }
 void Request::setServConfig(Server &serv_conf)
 {
-    // (void)_map_servers;
-    // (void)flag;
-    // if(flag)
-    // {
-    //     // cout << "-->" << getReqHeader()["Host"] << endl;
-    //     // exit(0);
-    //     if(!getReqHeader()["Host"].empty())
-    //     {
-    //         string hostVal = getReqHeader()["Host"];
-    //         if(!hostVal.empty() && hostVal.find(":") != string::npos && hostVal.find(":") != 0 && hostVal.find(":") != hostVal.size())
-    //         {
-    //             string servNm = hostVal.substr(0, hostVal.find(":"));
-    //             // int servPort = _stoi(hostVal.substr(hostVal.find(":") + 1));
-
-    //             if(serverIndexFinder(servNm) != -1)
-    //             {
-    //                 setServConfig(_servers[serverIndexFinder(servNm)]);
-    //                 // cout << "~>" << getReqHeader()["Host"] << endl;
-    //                 // exit(0);
-    //             }
-    //         }
-    //     }
-    // }
-    // else
     _serv_conf = serv_conf;
 }
 void Request::setServersMap(map<int, Server> &servs_map)
@@ -505,6 +483,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
     if(cgiDone && ResponseCode == 200)
     {
         sendHtmlResponseFile(cli_fd, 200, " OK", fullPth, "text/html");
+        
         // if(ResponseSent)
         //     unlink(fullPth.c_str()); // remove output file after reading the content for CGI
     }
@@ -625,8 +604,6 @@ void Request::uploadCheckers()
             throw ResponseCode;
         }
         closedir(dir);
-        // std::cout << uploadPath << std::endl;
-        // exit (0);
     }
 }
 
@@ -896,13 +873,27 @@ void Request::firstComingRequest(string& myBuff, int len)
                 y << FileNumber;
                 std::string n;
                 y >> n;
-                fileName = uploadPath + "/file-number=" + n + "." + _contentType[_req_header["Content-Type"]];
+                std::string typo = _contentType[_req_header["Content-Type"]];
+                if (typo.empty())
+                    typo = "txt";
+                fileName = uploadPath + "/file-number=" + n + "." + typo;
+                if (_isFile(fileName.c_str()))
+                {
+                    while (_isFile(fileName.c_str()))
+                    {
+                        FileNumber++;
+                        std::stringstream y;
+                        y << FileNumber;
+                        std::string n;
+                        y >> n;
+                        fileName = uploadPath + "/file-number=" + n + "." + typo;
+                    }
+                }
                 outfile.open(fileName.c_str());
                 if (!outfile)
                 {
                     ResponseCode = 500;
                     throw ResponseCode;
-                    // errorHolder("outfile couldn't be opened!");
                 }
             }
             if (!myBuff.substr(endOfHeaders + 4).empty())
@@ -1106,11 +1097,11 @@ void Request::locationMatcher()
     if(rootLocIndex >= 0 && !_serv_conf.getLocs()[rootLocIndex].getRoot().empty())
         _serv_conf.setRoot(_serv_conf.getLocs()[rootLocIndex].getRoot());
 
-    if(_methode == "DELETE")
-    {
-        ResponseCode = 0;
-        throw ResponseCode;
-    }
+    // if(_methode == "DELETE")
+    // {
+    //     ResponseCode = 0;
+    //     throw ResponseCode;
+    // }
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
         _url.erase(1,2);
@@ -1189,13 +1180,21 @@ void Request::locationMatcher()
 
     if(!isDirectory(pathToLocation.c_str()) && !_isFile(pathToLocation.c_str()) && _url != "/favicon.ico")
     {
+        // if(_serv_conf.getLocs()[locIndex].isRedirected())
+        // {
+        //     _url = firstDirInPath;
+        //     ResponseCode = 301;
+        //     throw ResponseCode;
+        // }
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
+            cout << "-->" << firstDirInPath << endl;
             ResponseCode = 404;
             throw ResponseCode;
         }
     }
+
     if(firstDirInPath[firstDirInPath.size() - 1] != '/')
     {
         _url += '/';
@@ -1204,14 +1203,15 @@ void Request::locationMatcher()
     }
 
     pureLoc = _url;
-
     if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
         _url = pathToLocation.substr(_serv_conf.getLocs()[locIndex].getRoot().size());
     else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
         _url = pathToLocation.substr(_serv_conf.getRoot().size());
-    std::cout << "url = " << _url << std::endl;
-    std::cout << "pathToLocation = " << pathToLocation << std::endl;
-    
+
+    if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected())
+        pathToLocation = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
+        // indexFullPath = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
+    // exit(0);
 }
 
 void Request::Requesting(int _socFd)
@@ -1267,6 +1267,7 @@ string charToString(char buff[])
 
 void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string status, string filePath, string cnttype) 
 {
+    
     if(infile.is_open())
     {
         memset(_toRead, 0, SIZE);
@@ -1276,9 +1277,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
         {
             ResponseSent = true;
             return;
-            
-            // ResponseCode = 500;
-            // throw ResponseCode;
         }
         if(infile.eof())
         {
@@ -1293,18 +1291,18 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             infile.close();
             ResponseSent = true;
             return;
-            // ResponseCode = 500;
-            // throw ResponseCode;
         }
-        // exit (0);
     }
     else if (!infile.is_open()) 
     {
-        // string response;
-        // infile.open(filePath.c_str());
-        // struct stat flstat;
-        // stat(filePath.c_str(), &flstat);
-
+        // static int i;
+        // cout << "******* >>" << ResponseCode << endl;
+        // if(i == 2)
+        // {
+        //     cout << "-->" << ResponseCode << endl;
+        //     exit(0);
+        // }
+        // i++;
         if(!_firstReadedtry && !cgiDone && !cgiTrue)
         {
             string response;
@@ -1327,6 +1325,14 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             filePath = pathToLocation.substr(0, pathToLocation.find_last_of('/')) + "/cgi-output-" + intToString(cgiFileN++);
             filePathstr = filePath;
             infile.open(filePath.c_str());
+            if(infile.fail())
+            {
+                ResponseSent = true; ///////////////////////////////////////////
+                // throw ResponseCode;
+                return ;
+                cout << "******* >>" << filePath << endl;
+                exit(0);
+            }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
             _firstReadedtry = true;
@@ -1479,8 +1485,8 @@ string Request::getContentType(string reference)
 {
 	map<string, string>::iterator it = _contentType.begin();
 	for(;it != _contentType.end(); it++)
-		if(reference == it->first)
-			return it->second;
+		if(reference == it->second)
+			return it->first;
 	// errorHolder("invalid content type");
 	return "";
 }
@@ -1582,14 +1588,20 @@ bool Request::RemoveDirectory(const char *path)
                     if (CheckPermissions(path_name.c_str()) == true)
                         RemoveDirectory(path_name.c_str());
                     else
+                    {
+                        closedir(ptr_dir);
                         return(false);
+                    }
                 }
                 else if(ptr_dirent->d_type == DT_REG)
                 {
                     if (CheckPermissions(path_name.c_str()) ==  true)
                         remove(path_name.c_str());
                     else
+                    {
+                        closedir(ptr_dir);
                         return(false);
+                    }
                 }
             }
         }
@@ -1662,14 +1674,14 @@ int Request::Check_Path(const char* path)
 
 void Request::DeleteMethod(const char* path)
 {
+    if(!_serv_conf.getLocs()[locIndex].locHasDELETEallowed())
+    {
+        ResponseCode = 405;
+        throw ResponseCode;
+    }
     if (Check_Path(path) == 204)
     {
         std::string pp = path;
-        if(pp.find(_serv_conf.getRoot()) == string::npos)
-        {
-            pp = _serv_conf.getRoot() + pp.substr(1);
-        }
-        
         if (isDirectoryCheck(pp.c_str()) == 0)
         {
             if (CheckPermissions(pp.c_str()) == true)
@@ -1713,7 +1725,7 @@ void Request::sendMovedPermanently(int clientfd, string moveTo)
     stringstream httpResponse;
     httpResponse << "HTTP/1.1 " << 301 << _errorStatus[301] << "\r\n"
     << "Location: "<< moveTo << "\r\n"
-    << "\r\n";                                                                                                                                                
+    << "\r\n";
     send(clientfd, httpResponse.str().c_str(), httpResponse.str().length(), 0);
     ResponseSent = true;
     ResponseCode = 0;
@@ -1729,28 +1741,31 @@ void Request::dirReqHandling(int clientSocket)
         // cheking it's return
         if(mainLoc.isRedirected())
         {   
+            cout << "----cc----------->" << pathToLocation << endl;
             sendMovedPermanently(clientSocket, _serv_conf.getLocs()[locIndex].getRedirection());
             throw ResponseCode;
         }
 
         // cheking index
-        else if(mainLoc.isIndexed())
+        else if(mainLoc.isIndexed() && !cgiDone)
         {
-            string fullPath;
-            if(!mainLoc.getRoot().empty())
+            std::cout << "DKHAAL NORMAL" << std::endl;
+            pathToLocation += indexFileOnly;
+            // string fullPath;
+            // if(!mainLoc.getRoot().empty())
+            //     fullPath = mainLoc.getRoot() + mainLoc.getIndex();
+            // else if(mainLoc.getRoot().empty())
+            //     fullPath = _serv_conf.getRoot() + mainLoc.getIndex();
+            
+            pathToLocation = removeConsecutiveSlashes(pathToLocation);
+            string ext = pathToLocation.substr(pathToLocation.find_last_of('.') + 1);
+            if(_isFile(pathToLocation.c_str()) && isUserPermitted(pathToLocation))
             {
-                fullPath = mainLoc.getRoot() + mainLoc.getIndex();
+                sendHtmlResponseFile(clientSocket, 200, " OK", pathToLocation, getContentType(ext));
+                // ResponseCode = 200;
+                // throw ResponseCode;
             }
-            else if(mainLoc.getRoot().empty())
-            {
-                fullPath = _serv_conf.getRoot() + mainLoc.getIndex();
-            }
-            fullPath = removeConsecutiveSlashes(fullPath);
-            if(_isFile(fullPath.c_str()) && isUserPermitted(fullPath))
-            {
-                sendHtmlResponseFile(clientSocket, 200, " OK", mainLoc.getRoot() + mainLoc.getIndex(), "text/html");
-            }
-            else if(_isFile(fullPath.c_str()) && !isUserPermitted(fullPath))
+            else if(_isFile(pathToLocation.c_str()) && !isUserPermitted(pathToLocation))
             {
                 ResponseCode = 403;
                 throw ResponseCode;
@@ -1797,7 +1812,7 @@ void Request::fileReqHandling(int clientSocket)
         if(!getContentType(_url.substr(_url.find('.') + 1)).empty())
             extent =  getContentType(_url.substr(_url.find('.') + 1));
         else
-            extent = ".txt";
+            extent = "text/plain";
         sendHtmlResponseFile(clientSocket, 200, _errorStatus[200], pathToLocation, extent);
         ResponseCode = 0;
         if(ResponseSent)
@@ -1861,10 +1876,16 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
-            // cout << "-->" << pathToLocation << endl;
             // exit(0);
+            if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected()
+                && _isFile(pathToLocation.c_str()))
+            {
+                indexFileOnly = pathToLocation.substr(pathToLocation.find_last_of("/") + 1);
+                pathToLocation = pathToLocation.substr(0, pathToLocation.find_last_of("/") + 1);
+            }
             if(isDirectory(pathToLocation.c_str()))
             {
+                
                 if(!hasReadAndWritePermissions(pathToLocation.c_str()))
                 {
                     ResponseCode = 403;
@@ -1874,6 +1895,8 @@ void Request::handleContentRequest(int clientSocket)
             }
             else if(_isFile(pathToLocation.c_str()))
             {
+                // std::cout << pathToLocation << std::endl;
+                // exit (0);
                 fileReqHandling(clientSocket);
             }
             else if (!cgiDone)
@@ -1885,13 +1908,17 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("DELETE"))
         {
-            DeleteMethod(_url.c_str());
+            DeleteMethod(pathToLocation.c_str());
         }
     }
     catch(...)
     {
+        cout << "->" << ResponseCode << " ---- " << boolalpha << ResponseSent << endl;
+        // exit(0);
         if(ResponseCode == 301)
         {
+            // cout << "---->" << pathToLocation << endl;
+            // exit(0);
             sendMovedPermanently(clientSocket, _url);
             ResponseCode = 0;
         }

@@ -796,14 +796,26 @@ void Config::handle_requests()
 				else if(events[i].events & EPOLLOUT && req[events[i].data.fd].getRequestCatch()) // response
 				{
 					req[events[i].data.fd].startTime = clock();
+					Location loc = req[events[i].data.fd].getServConfig().getLocs()[req[events[i].data.fd].getlocIndex()];
 					if (((!req[events[i].data.fd].getResponseCode() || req[events[i].data.fd].getResponseCode() == 201)
 						&& (req[events[i].data.fd].getMethode() == "GET" || req[events[i].data.fd].getMethode() == "POST")
 						&& req[events[i].data.fd].getlocIndex() != -1 && !req[events[i].data.fd].getCgiDone()
-						&& !req[events[i].data.fd].getServConfig().getLocs()[req[events[i].data.fd].getlocIndex()].getCgi().compare("on")))
+						&& !loc.getCgi().compare("on")))
 					{
+						if(loc.isIndexed() && !loc.isRedirected() && !req[events[i].data.fd].getcgiTrue())
+						{
+							req[events[i].data.fd].old_url = req[events[i].data.fd]._url;
+							string urlToServ = req[events[i].data.fd]._url + loc.getIndex();
+							req[events[i].data.fd].setUrl(urlToServ);
+						}
 						// std::cout << "===CGI===" << std::endl;
 						int Code = 0;
 						Code = req[events[i].data.fd].cgi_obj.cgi_handler(req[events[i].data.fd]);
+						if (!req[events[i].data.fd].getcgiTrue() && loc.isIndexed() && !loc.isRedirected())
+						{
+							req[events[i].data.fd].setUrl(req[events[i].data.fd].old_url);
+							std::cout << "eywaa ==> " << req[events[i].data.fd]._url << std::endl;
+						}
 						if (req[events[i].data.fd].getcgiTrue() && !Code)
 							continue;
 						if (req[events[i].data.fd].getcgiTrue())

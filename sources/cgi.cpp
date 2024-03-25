@@ -18,26 +18,6 @@ CGI::~CGI()
 
 }
 
-bool _isDirectory(const char *path)
-{
-    DIR *dir = opendir(path);
-    if (dir != NULL)
-    {
-        closedir(dir);
-        return true;
-    }
-    return false;
-}
-
-
-bool isFile(const char* path) 
-{
-    struct stat fileInfo;
-    if (stat(path, &fileInfo) < 0)
-        return 0;
-    return S_ISREG(fileInfo.st_mode) != 0;
-}
-
 bool    CGI::checkPathExtension(Request& reqObj)
 {
     if (_url.find_last_of(".") == std::string::npos)
@@ -73,8 +53,6 @@ bool    CGI::checkPathExtension(Request& reqObj)
 
 int	CGI::cgi_handler(Request& reqObj)
 {
-    // static size_t		fileN;
-    // exit (0);
     if (!reqObj.cgiFlag)
     {
         reqObj.cgiFlag = true;
@@ -131,7 +109,6 @@ int	CGI::cgi_handler(Request& reqObj)
         reqObj.cgiPid = pid;
         if (pid == -1)
         {
-            // std::cerr << "internal server error4" << std::endl;
             reqObj.setCgiDone(true);
             return 500;
         }
@@ -159,16 +136,11 @@ int	CGI::cgi_handler(Request& reqObj)
                 kill(getpid(), SIGKILL);
             kill(getpid(), SIGKILL);
         }
-        // if (pid != 0)
-        // {
-        //     fileN++;
-        // }
     }
     pid_t waitStat = waitpid(pid, &status, WNOHANG);
     if (waitStat < 0)
     {
         reqObj.setCgiDone(true);
-        // exit (0);
         return 500;
     }
     if (WIFSIGNALED(status))

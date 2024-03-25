@@ -20,7 +20,6 @@ class Request : public Server
         map<int, string> _errorStatus;
         map<int, string> _errorPath;
         string _methode;
-        string _url;
         string _httpVersion;
         string initialBody;
         Server _serv_conf;
@@ -59,7 +58,6 @@ class Request : public Server
         int totalBytesRead;
         string fileName;
 
-        string pathToLocation;
 
         // ifstream infile;
         // ofstream outfile;
@@ -95,9 +93,13 @@ class Request : public Server
 
 
     public:
+        string _url;
         size_t cgiFileN;
         ifstream infile;
         ofstream outfile;
+        std::string old_url;
+        std::string indexFileOnly;
+        string pathToLocation;
         bool ResponseSent;
         CGI cgi_obj;
         pid_t	    cgiPid;
@@ -118,7 +120,7 @@ class Request : public Server
         
         /* Getters */
         string &getMethode(void);
-        string &getUrl(void);
+        string getUrl(void);
         string &getHttpVers(void);
         Server &getServConfig(void);
         bool getEpollFlag();
