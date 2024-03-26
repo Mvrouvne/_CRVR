@@ -1322,8 +1322,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
                 ResponseSent = true; ///////////////////////////////////////////
                 // throw ResponseCode;
                 return ;
-                cout << "******* >>" << filePath << endl;
-                exit(0);
             }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);

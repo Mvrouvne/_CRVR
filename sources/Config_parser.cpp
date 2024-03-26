@@ -189,9 +189,24 @@ int lineCheck(string &line, int &flag, int &flagg)
 bool checkBrackets(const string &conf_file)
 {
 	stack<char> stack;
+	bool inComment = false;
     for (string::const_iterator it = conf_file.begin(); it != conf_file.end(); ++it) 
 	{
         char ch = *it;
+		// Check if we're entering a comment
+        if (ch == '#' && !inComment) {
+            inComment = true;
+        }
+        // Check if we're at the end of a line, thus exiting a comment
+        else if (ch == '\n') {
+            inComment = false;
+        }
+
+        // If we're in a comment, skip this character
+        if (inComment) {
+            continue;
+        }
+
         if (ch == '{') {
             stack.push(ch);
         } 
@@ -721,7 +736,8 @@ void Config::catchConfig(const string &conf_file)
 			}
 		}
 	}
-
+	if(_locations.size() == 0)
+		errorHolder("No location is provided!");
 	// print();
 	// exit(0);
 	conf.close();
