@@ -144,12 +144,15 @@ int	CGI::cgi_handler(Request& reqObj)
     if (waitStat < 0)
     {
         reqObj.setCgiDone(true);
+        toUnlink = realPath.substr(0, realPath.find_last_of('/') + 1) + "/cgi-output-" + intToString(reqObj.cgiFileN);
+        unlink(toUnlink.c_str());
         return 500;
     }
     if (WIFSIGNALED(status))
     {
-        std::cout << "SIIGNAALLL =====> " << WTERMSIG(status) << std::endl;
         reqObj.setCgiDone(true);
+        toUnlink = realPath.substr(0, realPath.find_last_of('/') + 1) + "/cgi-output-" + intToString(reqObj.cgiFileN);
+        unlink(toUnlink.c_str());
         return 500;
     }
     cgiEndTime = clock();
@@ -160,7 +163,8 @@ int	CGI::cgi_handler(Request& reqObj)
         reqObj.setCgiDone(true);
         kill (pid, SIGKILL);
         waitpid(pid, NULL, 0);
-        
+        toUnlink = realPath.substr(0, realPath.find_last_of('/') + 1) + "/cgi-output-" + intToString(reqObj.cgiFileN);
+        unlink(toUnlink.c_str());
         return 504;
     }
     if (waitStat == 0)

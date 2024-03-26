@@ -472,14 +472,10 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
 {
     bool flag = true;
     string fullPth;
-    // exit (0);
 
     if(cgiDone && ResponseCode == 200)
     {
         sendHtmlResponseFile(cli_fd, 200, " OK", fullPth, "text/html");
-        
-        // if(ResponseSent)
-        //     unlink(fullPth.c_str()); // remove output file after reading the content for CGI
     }
     else if(_serv_conf.getErrorPages().size() == 2 && _isFile(_serv_conf.getErrorPages()[1].c_str()) && intToString(error_code) == _serv_conf.getErrorPages()[0])
     {
@@ -512,10 +508,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
             responseFinale << response;
         }
         
-        if (send(cli_fd, responseFinale.str().c_str(), responseFinale.str().length(), 0) == -1)
-        {
-            std::cout << "Generate Error: " << strerror(errno) << std::endl;
-        }
+        send(cli_fd, responseFinale.str().c_str(), responseFinale.str().length(), 0);
 
         ResponseSent = true;
         if(cgiDone)
@@ -546,7 +539,6 @@ void Request::processHeaders(const string& headerStr)
                         {
                             ResponseCode = 411;
                             throw ResponseCode;
-                            // return ;
                         }
                         _isContentLength = true;
                     }
@@ -554,10 +546,8 @@ void Request::processHeaders(const string& headerStr)
                         _isChunked = true;
                     else if (key == "Transfer-Encoding" && value != "chunked")
                     {
-                        // _isContentLength = false;
                         ResponseCode = 501;
                         throw ResponseCode;
-                        // return;
                     }
                 }
             }
@@ -764,7 +754,6 @@ void Request::firstComingRequest(string& myBuff, int len)
             if (_methode != "GET" && _methode != "POST" && _methode != "DELETE")
             {
                 ResponseCode = 501;
-                // std::cout << ResponseCode << std::endl;
                 throw ResponseCode;
             }
             _url = removeConsecutiveSlashes(firstLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
@@ -861,7 +850,6 @@ void Request::firstComingRequest(string& myBuff, int len)
         if (_methode == "POST")
         {
             uploadCheckers();
-            // if content type not empty and == multipart data ==> not imlemented
             if (_req_header["Content-Type"].empty())
             {
                 ResponseCode = 400;
@@ -947,9 +935,8 @@ void Request::contentLengthHandler(int sock_fd)
             outfile.write(initialBody.c_str(), iBodysize);
         if (outfile.fail())
         {
-            // OPTIONAL !!!
-            std::cerr << "write() failed to save body" << std::endl;
-            exit (EXIT_FAILURE);
+            ResponseCode = 500;
+            throw ResponseCode;
         }
         bodyRead += iBodysize;
         outfile.flush();
@@ -967,9 +954,8 @@ void Request::contentLengthHandler(int sock_fd)
             outfile.write(_buffer, bytesRead);
         if (outfile.fail())
         {
-            // OPTIONAL !!!
-            std::cerr << "write() failed to save body" << std::endl;
-            exit (EXIT_FAILURE);
+            ResponseCode = 500;
+            throw ResponseCode;
         }
         outfile.flush();
         bodyRead += bytesRead;
@@ -996,7 +982,6 @@ void Request::GetSize()
 
 void Request::chunkedHandler(int sock_fd)
 {
-    std::cout << "CHUUNKK" << std::endl;
     (void)sock_fd;
 	if (!_isChunked1stTime)
 	{
@@ -1010,15 +995,13 @@ void Request::chunkedHandler(int sock_fd)
 		chunkString.append(initialBody.c_str(), iBodySize);
 		GetSize();
 		_isChunked1stTime = true;
-        //////
         while (chunkSize &&  chunkSize < iBodySize)
         {
             outfile.write(chunkString.c_str(), chunkSize);
             if (outfile.fail())
             {
-                // OPTIONAL !!!
-                std::cerr << "write() failed to save chunk" << std::endl;
-                exit (EXIT_FAILURE);
+                ResponseCode = 500;
+                throw ResponseCode;
             }
             chunkString.erase(0, chunkSize);
             chunkString.erase(0, 2);
@@ -1038,9 +1021,8 @@ void Request::chunkedHandler(int sock_fd)
 		outfile.write(chunkString.c_str(), chunkSize);
 		if (outfile.fail())
 		{
-			// OPTIONAL !!!
-            std::cerr << "write() failed to save chunk" << std::endl;
-            exit (EXIT_FAILURE);
+			ResponseCode = 500;
+            throw ResponseCode;
 		}
 		chunkString.erase(0, chunkSize);
 		chunkString.erase(0, 2);
@@ -1050,13 +1032,11 @@ void Request::chunkedHandler(int sock_fd)
 
 	if (!chunkSize)
 	{
-        // bodyDone = true;
         ResponseCode = 201;
         readFlag = true;
         _chunkedDone = true;
         outfile.close();
         throw ResponseCode;
-		// return;
 	}
 }
 
@@ -1119,7 +1099,7 @@ void Request::locationMatcher()
 
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
-        _url.erase(1,2);
+        _url.erase(1,1);
 
     // if(!_url.substr(0, _url.find('/', 1) + 1).empty() && _url.find("/..") != 0)
     if(_url.find("/..") != 0)
@@ -1170,7 +1150,7 @@ void Request::locationMatcher()
             else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
                 pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
         }
-        
+
     // }
     // else
     // {
@@ -1231,10 +1211,8 @@ void Request::locationMatcher()
     }
     if(firstDirInPath[firstDirInPath.size() - 1] != '/' && locIndex != rootLocIndex )
     {
-        std::cout << "--> "<< firstDirInPath << std::endl;
         if(!_isFile(pathToLocation.c_str()))
             _url += '/';
-        // std::cout << "HNAA -- " << pathToLocation << std::endl;
         ResponseCode = 301;
         throw ResponseCode;
     }
@@ -1247,8 +1225,6 @@ void Request::locationMatcher()
 
     if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected())
         pathToLocation = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
-        // indexFullPath = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
-    // exit(0);
 }
 
 void Request::Requesting(int _socFd)
@@ -1304,7 +1280,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     {
         memset(_toRead, 0, SIZE);
         infile.read(_toRead, SIZE);
-        // if (send(clientSocket, _toRead, infile.gcount(), 0) && filePath.compare("./favicon.ico"))
         if(cgiDone && !_firstCgiTry)
         {
             string statusReceived = _toRead;
@@ -1322,8 +1297,11 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
                     rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
                 else
                     rep += "HTTP/1.1 200 OK\r\n";
-                if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
-                    std::cout << "8" << strerror(errno) << std::endl;
+                if (send(clientSocket, rep.c_str(), rep.length(), 0) < 0)
+                {
+                    ResponseSent = true;
+                    return ;
+                }
             }
             _firstCgiTry = true;
         }
@@ -1353,6 +1331,11 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
         {
             string response;
             infile.open(filePath.c_str());
+            if(infile.fail())
+            {
+                ResponseSent = true;
+                return ;
+            }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
 
@@ -1373,22 +1356,13 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             infile.open(filePath.c_str());
             if(infile.fail())
             {
-                ResponseSent = true; ///////////////////////////////////////////
-                // throw ResponseCode;
+                ResponseSent = true;
                 return ;
             }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
             _firstReadedtry = true;
-            
-            // std::string rep;
 
-            // if (!cgiIsPhp)
-            //     rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-            // else
-            //     rep += "HTTP/1.1 200 OK\r\n";
-            // if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
-            //     std::cout << "8" << strerror(errno) << std::endl;
         }
     }
 }
@@ -1416,22 +1390,8 @@ void Request::sendDirResponse(int clientSocket, const string content, int errCod
     string response = httpResponse.str();
 
     // Send the HTTP response to the client
-    if (send(clientSocket, response.c_str(), response.length(), 0) == -1)
-        std::cout << "6" << strerror(errno) << std::endl;
+    send(clientSocket, response.c_str(), response.length(), 0);
     ResponseSent = true;
-}
-
-void sendDeleteResponse(int clientSocket, const string content) 
-{
-    // Constructing the HTTP response
-    ostringstream httpResponse;
-    httpResponse << content;
-
-    string response = httpResponse.str();
-
-    // Send the HTTP response to the client
-    if (send(clientSocket, response.c_str(), response.length(), 0) == -1)
-        std::cout << "7" << strerror(errno) << std::endl;
 }
 
 string Request::getErrorPath(int pageCode)
@@ -1532,7 +1492,6 @@ string Request::getContentType(string reference)
 	for(;it != _contentType.end(); it++)
 		if(reference == it->second)
 			return it->first;
-	// errorHolder("invalid content type");
 	return "";
 }
 
@@ -1615,6 +1574,23 @@ bool Request::CheckPermissions(const char *path)
     return (true);
 }
 
+bool check_dir_is_empty(const char* path)
+{
+    DIR *ptr_Dir = opendir(path);
+    struct dirent *ptr_dirent;
+
+    while((ptr_dirent = readdir(ptr_Dir)) != NULL)
+    {
+        if (strcmp(ptr_dirent->d_name, ".") != 0 && strcmp(ptr_dirent->d_name, "..") != 0)
+        {
+            closedir(ptr_Dir);
+            return (false);
+        }
+    }
+    closedir(ptr_Dir);
+    return (true);
+}
+
 bool Request::RemoveDirectory(const char *path) 
 {
     DIR *ptr_dir = opendir(path);
@@ -1624,6 +1600,7 @@ bool Request::RemoveDirectory(const char *path)
     {
         while((ptr_dirent = readdir(ptr_dir)) != NULL)
         {
+             
             if (strcmp(ptr_dirent->d_name, ".") != 0 && strcmp(ptr_dirent->d_name, "..") != 0)
             {
                 string path_name = string(path) + ptr_dirent->d_name;
@@ -1632,28 +1609,21 @@ bool Request::RemoveDirectory(const char *path)
                 {
                     if (CheckPermissions(path_name.c_str()) == true)
                         RemoveDirectory(path_name.c_str());
-                    else
-                    {
-                        closedir(ptr_dir);
-                        return(false);
-                    }
                 }
                 else if(ptr_dirent->d_type == DT_REG)
                 {
+                    // cout << path_name << endl;
                     if (CheckPermissions(path_name.c_str()) ==  true)
                         remove(path_name.c_str());
-                    else
-                    {
-                        closedir(ptr_dir);
-                        return(false);
-                    }
                 }
             }
         }
     }   
+    if (check_dir_is_empty(path))
+        rmdir(path);
+    else
+        return false;
     closedir(ptr_dir);
-
-    rmdir(path);
     return (true);
 }
 
@@ -1674,35 +1644,26 @@ int Request::Check_Path(const char* path)
         return (404);
 
     std::string pp = path;
-    if(pp.find(_serv_conf.getRoot()) == string::npos)
-        pp = _serv_conf.getRoot() + pp.substr(1);
-    std::string root = _serv_conf.getRoot();
-    if (root.empty())
-        return (404);
-
-    if(pp[pp.size() - 1] != '/')
-    {
-        struct stat path_stat;
-        if (stat(pp.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
-        {
-            // Ajouter le slash seulement si c'est un répertoire
-            pp += '/';
-        }
-    }
 
     char path_abso[PATH];
     char *resultat = realpath(pp.c_str(), path_abso);
-
     if (resultat != NULL) 
     {
+        string location_path;
+        if (_serv_conf.getLocs()[locIndex].getRoot().empty())
+            location_path = _serv_conf.getRoot();
+
+        else if (!_serv_conf.getLocs()[locIndex].getRoot().empty())
+            location_path = _serv_conf.getLocs()[locIndex].getRoot();
+
         std::string str_path = path_abso;
 
-        size_t findPath = str_path.find(root);
+        size_t findPath = str_path.find(location_path);
 
         if (findPath != std::string::npos)
         {
             std::string temp = str_path;
-            std::string erasy = temp.erase(0,root.size());
+            std::string erasy = temp.erase(0,location_path.size());
 
             if (erasy.empty() == false)
             {
@@ -1724,9 +1685,11 @@ void Request::DeleteMethod(const char* path)
         ResponseCode = 405;
         throw ResponseCode;
     }
+
     if (Check_Path(path) == 204)
     {
         std::string pp = path;
+
         if (isDirectoryCheck(pp.c_str()) == 0)
         {
             if (CheckPermissions(pp.c_str()) == true)
@@ -1735,13 +1698,18 @@ void Request::DeleteMethod(const char* path)
                     ResponseCode = 204;
 
                 else
+                {
                     ResponseCode = 403;
+                }
 
             }
         }
 
         else if(isDirectoryCheck(pp.c_str()) == -1)
+        {
+
             ResponseCode = 403;
+        }
 
         else if(isFile(pp.c_str()))
         {
@@ -1751,7 +1719,9 @@ void Request::DeleteMethod(const char* path)
                     ResponseCode = 204;
             }
             else
+            {
                 ResponseCode = 403;
+            }
         }
         else
             ResponseCode = 404;
@@ -1759,9 +1729,7 @@ void Request::DeleteMethod(const char* path)
     else if(Check_Path(path) == 403)
         ResponseCode = 403;
     else if(Check_Path(path) == 404)
-    {
         ResponseCode = 404;
-    }
     throw ResponseCode;
 }
 
@@ -1923,7 +1891,6 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
-            // exit(0);
             if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected()
                 && _isFile(pathToLocation.c_str()))
             {
@@ -1942,8 +1909,6 @@ void Request::handleContentRequest(int clientSocket)
             }
             else if(_isFile(pathToLocation.c_str()))
             {
-                // std::cout << pathToLocation << std::endl;
-                // exit (0);
                 fileReqHandling(clientSocket);
             }
             else if (!cgiDone)
