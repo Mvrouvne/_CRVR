@@ -23,15 +23,6 @@ Request::Request()
     {
         std::cerr << "MIMEtypes file cannot be opened!" << std::endl;
     }
-    // exit (0);
-	// for (; !typ.empty(); )
-	// {
-	// 	s1 = typ.substr(0, typ.find(' '));
-	// 	typ.erase(0, typ.find(' ') + 1);
-	// 	s2 = typ.substr(0, typ.find('$'));
-	// 	typ.erase(0, typ.find('$') + 1);
-	// 	_contentType[s2] = s1;
-	// }
     
     _errorPath[201] =  "./error_pages/201.html";
     _errorPath[204] =  "./error_pages/204.html";
