@@ -23,12 +23,7 @@ vector<Server> Config::getServers(void)
 
 string	readFile(string path)
 {
-	if (path.empty() || path.length() == 0)
-		errorHolder("invalid file 1");
 	ifstream config_file(path.c_str());
-	if (!config_file || !config_file.is_open())
-		errorHolder("invalid file 2");
-
 	stringstream stream_binding;
 	stream_binding << config_file.rdbuf();
 	return (stream_binding.str());
@@ -62,26 +57,6 @@ int onlyCharInLine(string &line, char c)
 		return 1;
 	return 0;
 }
-
-// int Config::findBlock(string line, string _target, int i)
-// {
-// 	size_t pos = line.find(_target);
-// 	if(pos != string::npos)
-// 	{
-// 		int start  = pos + _target.length();
-// 		if(i == 0)
-// 			_listen = line.substr(start, line.find(";") - start),spaceRemover(_listen);
-// 		else if(i == 1)
-// 			_server_name = line.substr(start, line.find(";") - start),spaceRemover(_server_name);
-// 		else if(i == 2)
-// 			_host = line.substr(start, line.find(";") - start), spaceRemover(_host);
-// 		else if(i == 3)
-// 			_root = line.substr(start, line.find(";") - start),spaceRemover(_root);
-// 		return 0;
-// 	}
-// 	errorHolder(" Missing/invalid/duplicated Conf block");
-// 	return 1;
-// }
 
 const ostream& operator<<(ostream& out, Server serv)
 {
@@ -271,8 +246,6 @@ void validateLocation(Location &loc)
 	{
 		if(loc.getCGI_PY().empty() && loc.getCGI_PHP().empty() && loc.getCGI_SH().empty())
 			errorHolder("at least provide one CGI in " + loc.getPattern());
-		// if(loc.getCGI_PY().size() != 2 || loc.getCGI_PHP().size() != 2)
-		// 	errorHolder("invalid CGI path given in " + loc.getPattern());
 		if(!loc.getCGI_PY().empty())
 		{
 			if(loc.getCGI_PY()[0].empty() || loc.getCGI_PY()[1].empty())
@@ -302,14 +275,7 @@ void validateLocation(Location &loc)
 			if(loc.getCGI_SH()[1].compare(".sh"))
 				errorHolder("invalid CGI extention in " + loc.getPattern());
 		}
-
 	}
-	// if ((access(loc.getRoot().c_str(), F_OK | R_OK | X_OK ) == -1) || (access(loc.getPattern().c_str(), F_OK | R_OK | X_OK ) == -1))
-	// ||  (access(loc.getUploadPath().c_str(), F_OK | R_OK | X_OK ) == -1)
-	// 	errorHolder(" Path not accessible!");
-
-
-	// indexFile.close();
 }
 
 int _stoi(string str)
@@ -355,11 +321,8 @@ void Config::validServerBlocks(Server serv)
 	if(serv.getListen()[0] == '\0' || serv.getServername()[0] == '\0' || serv.getHost()[0] == '\0')
 		errorHolder("Server block required!");
 	if(serv.getRoot()[0] == '\0')
-	{
 		_hasRoot = true;
-	}
-	// if(!isDirectory(serv.getRoot().c_str()))
-	// 	errorHolder("invalid server root!");
+
 	if(!isNumber(serv.getListen()) || !isValidPort(_stoi(serv.getListen())))
 			errorHolder("Server port is not valid!");
 	for(i = 0; i < serv.getHost().size(); i++)
@@ -387,8 +350,6 @@ void Config::validServerBlocks(Server serv)
 	}
 	if(hostParts != 4)
 		errorHolder("More/Less than 4 bytes in host!");
-	// if (access(serv.getRoot().c_str(), F_OK | R_OK | X_OK ) == -1)
-	// 	errorHolder("server root pattern not accessible!");
 }
 
 void checkDuplicatedLocs(vector<Location> _locs)
@@ -449,8 +410,6 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 		iss >> holder;
 		if(holder[holder.size() - 1] == ';')
 			holder.erase(holder.size() - 1);
-		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
-		// 	errorHolder("pattern name in " + holder + " is missing a SLASH!");
 		consecutiveSlashsFinder(holder);
 		string str = holder;
 		if(str[0] == '/')
@@ -491,8 +450,6 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 			holder.erase(holder.size() - 1);
 		if(holder[0] != '/' && holder.substr(0, 4) != "http")
 			holder = "/" + holder;
-		// 	errorHolder("return value in " + holder + " is missing a SLASH!");
-		// consecutiveSlashsFinder(holder);
 		loc.setRedirection(holder);
 	}
 	else if (token == "upload") {

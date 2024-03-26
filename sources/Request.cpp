@@ -23,15 +23,6 @@ Request::Request()
     {
         std::cerr << "MIMEtypes file cannot be opened!" << std::endl;
     }
-    // exit (0);
-	// for (; !typ.empty(); )
-	// {
-	// 	s1 = typ.substr(0, typ.find(' '));
-	// 	typ.erase(0, typ.find(' ') + 1);
-	// 	s2 = typ.substr(0, typ.find('$'));
-	// 	typ.erase(0, typ.find('$') + 1);
-	// 	_contentType[s2] = s1;
-	// }
     
     _errorPath[201] =  "./error_pages/201.html";
     _errorPath[204] =  "./error_pages/204.html";
@@ -481,14 +472,10 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
 {
     bool flag = true;
     string fullPth;
-    // exit (0);
 
     if(cgiDone && ResponseCode == 200)
     {
         sendHtmlResponseFile(cli_fd, 200, " OK", fullPth, "text/html");
-        
-        // if(ResponseSent)
-        //     unlink(fullPth.c_str()); // remove output file after reading the content for CGI
     }
     else if(_serv_conf.getErrorPages().size() == 2 && _isFile(_serv_conf.getErrorPages()[1].c_str()) && intToString(error_code) == _serv_conf.getErrorPages()[0])
     {
@@ -521,10 +508,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
             responseFinale << response;
         }
         
-        if (send(cli_fd, responseFinale.str().c_str(), responseFinale.str().length(), 0) == -1)
-        {
-            std::cout << "Generate Error: " << strerror(errno) << std::endl;
-        }
+        send(cli_fd, responseFinale.str().c_str(), responseFinale.str().length(), 0);
 
         ResponseSent = true;
         if(cgiDone)
@@ -555,7 +539,6 @@ void Request::processHeaders(const string& headerStr)
                         {
                             ResponseCode = 411;
                             throw ResponseCode;
-                            // return ;
                         }
                         _isContentLength = true;
                     }
@@ -563,10 +546,8 @@ void Request::processHeaders(const string& headerStr)
                         _isChunked = true;
                     else if (key == "Transfer-Encoding" && value != "chunked")
                     {
-                        // _isContentLength = false;
                         ResponseCode = 501;
                         throw ResponseCode;
-                        // return;
                     }
                 }
             }
@@ -773,7 +754,6 @@ void Request::firstComingRequest(string& myBuff, int len)
             if (_methode != "GET" && _methode != "POST" && _methode != "DELETE")
             {
                 ResponseCode = 501;
-                // std::cout << ResponseCode << std::endl;
                 throw ResponseCode;
             }
             _url = removeConsecutiveSlashes(firstLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
@@ -870,7 +850,6 @@ void Request::firstComingRequest(string& myBuff, int len)
         if (_methode == "POST")
         {
             uploadCheckers();
-            // if content type not empty and == multipart data ==> not imlemented
             if (_req_header["Content-Type"].empty())
             {
                 ResponseCode = 400;
@@ -956,9 +935,8 @@ void Request::contentLengthHandler(int sock_fd)
             outfile.write(initialBody.c_str(), iBodysize);
         if (outfile.fail())
         {
-            // OPTIONAL !!!
-            std::cerr << "write() failed to save body" << std::endl;
-            exit (EXIT_FAILURE);
+            ResponseCode = 500;
+            throw ResponseCode;
         }
         bodyRead += iBodysize;
         outfile.flush();
@@ -976,9 +954,8 @@ void Request::contentLengthHandler(int sock_fd)
             outfile.write(_buffer, bytesRead);
         if (outfile.fail())
         {
-            // OPTIONAL !!!
-            std::cerr << "write() failed to save body" << std::endl;
-            exit (EXIT_FAILURE);
+            ResponseCode = 500;
+            throw ResponseCode;
         }
         outfile.flush();
         bodyRead += bytesRead;
@@ -1005,7 +982,6 @@ void Request::GetSize()
 
 void Request::chunkedHandler(int sock_fd)
 {
-    std::cout << "CHUUNKK" << std::endl;
     (void)sock_fd;
 	if (!_isChunked1stTime)
 	{
@@ -1019,15 +995,13 @@ void Request::chunkedHandler(int sock_fd)
 		chunkString.append(initialBody.c_str(), iBodySize);
 		GetSize();
 		_isChunked1stTime = true;
-        //////
         while (chunkSize &&  chunkSize < iBodySize)
         {
             outfile.write(chunkString.c_str(), chunkSize);
             if (outfile.fail())
             {
-                // OPTIONAL !!!
-                std::cerr << "write() failed to save chunk" << std::endl;
-                exit (EXIT_FAILURE);
+                ResponseCode = 500;
+                throw ResponseCode;
             }
             chunkString.erase(0, chunkSize);
             chunkString.erase(0, 2);
@@ -1047,9 +1021,8 @@ void Request::chunkedHandler(int sock_fd)
 		outfile.write(chunkString.c_str(), chunkSize);
 		if (outfile.fail())
 		{
-			// OPTIONAL !!!
-            std::cerr << "write() failed to save chunk" << std::endl;
-            exit (EXIT_FAILURE);
+			ResponseCode = 500;
+            throw ResponseCode;
 		}
 		chunkString.erase(0, chunkSize);
 		chunkString.erase(0, 2);
@@ -1059,13 +1032,11 @@ void Request::chunkedHandler(int sock_fd)
 
 	if (!chunkSize)
 	{
-        // bodyDone = true;
         ResponseCode = 201;
         readFlag = true;
         _chunkedDone = true;
         outfile.close();
         throw ResponseCode;
-		// return;
 	}
 }
 
@@ -1254,8 +1225,6 @@ void Request::locationMatcher()
 
     if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected())
         pathToLocation = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
-        // indexFullPath = pathToLocation + _serv_conf.getLocs()[locIndex].getIndex();
-    // exit(0);
 }
 
 void Request::Requesting(int _socFd)
@@ -1311,7 +1280,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     {
         memset(_toRead, 0, SIZE);
         infile.read(_toRead, SIZE);
-        // if (send(clientSocket, _toRead, infile.gcount(), 0) && filePath.compare("./favicon.ico"))
         if(cgiDone && !_firstCgiTry)
         {
             string statusReceived = _toRead;
@@ -1329,8 +1297,11 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
                     rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
                 else
                     rep += "HTTP/1.1 200 OK\r\n";
-                if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
-                    std::cout << "8" << strerror(errno) << std::endl;
+                if (send(clientSocket, rep.c_str(), rep.length(), 0) < 0)
+                {
+                    ResponseSent = true;
+                    return ;
+                }
             }
             _firstCgiTry = true;
         }
@@ -1360,6 +1331,11 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
         {
             string response;
             infile.open(filePath.c_str());
+            if(infile.fail())
+            {
+                ResponseSent = true;
+                return ;
+            }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
 
@@ -1380,22 +1356,13 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             infile.open(filePath.c_str());
             if(infile.fail())
             {
-                ResponseSent = true; ///////////////////////////////////////////
-                // throw ResponseCode;
+                ResponseSent = true;
                 return ;
             }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
             _firstReadedtry = true;
-            
-            // std::string rep;
 
-            // if (!cgiIsPhp)
-            //     rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-            // else
-            //     rep += "HTTP/1.1 200 OK\r\n";
-            // if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
-            //     std::cout << "8" << strerror(errno) << std::endl;
         }
     }
 }
@@ -1423,22 +1390,8 @@ void Request::sendDirResponse(int clientSocket, const string content, int errCod
     string response = httpResponse.str();
 
     // Send the HTTP response to the client
-    if (send(clientSocket, response.c_str(), response.length(), 0) == -1)
-        std::cout << "6" << strerror(errno) << std::endl;
+    send(clientSocket, response.c_str(), response.length(), 0);
     ResponseSent = true;
-}
-
-void sendDeleteResponse(int clientSocket, const string content) 
-{
-    // Constructing the HTTP response
-    ostringstream httpResponse;
-    httpResponse << content;
-
-    string response = httpResponse.str();
-
-    // Send the HTTP response to the client
-    if (send(clientSocket, response.c_str(), response.length(), 0) == -1)
-        std::cout << "7" << strerror(errno) << std::endl;
 }
 
 string Request::getErrorPath(int pageCode)
@@ -1539,7 +1492,6 @@ string Request::getContentType(string reference)
 	for(;it != _contentType.end(); it++)
 		if(reference == it->second)
 			return it->first;
-	// errorHolder("invalid content type");
 	return "";
 }
 
@@ -1939,7 +1891,6 @@ void Request::handleContentRequest(int clientSocket)
 
         else if(!_methode.compare("GET"))
         {
-            // exit(0);
             if (_serv_conf.getLocs()[locIndex].isIndexed() && !_serv_conf.getLocs()[locIndex].isRedirected()
                 && _isFile(pathToLocation.c_str()))
             {
@@ -1958,8 +1909,6 @@ void Request::handleContentRequest(int clientSocket)
             }
             else if(_isFile(pathToLocation.c_str()))
             {
-                // std::cout << pathToLocation << std::endl;
-                // exit (0);
                 fileReqHandling(clientSocket);
             }
             else if (!cgiDone)

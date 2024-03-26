@@ -1,8 +1,10 @@
 
-🛑 REMOVE ALL THE EXITS! and error holders
-
-🛑 if send or recv fails put internal server error
-
 (lsof -c webserv ==> command to check open files)
 
-remove strerrno from std::cout << "Generate Error: " << strerror(errno) << std::endl;
+
+epoll_fd = epoll_create1(0);
+
+    if (epoll_fd == -1) {
+        cout << "epoll create -> " << strerror(errno) << endl;
+        exit(EXIT_FAILURE);
+    }
