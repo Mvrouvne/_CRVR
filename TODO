@@ -221,6 +221,3 @@ CHECK FOR DUPLICATED ATTRIBUTES IN LOCATION
 
 🛑 UNCHECK BRACKETS IF EVEN WILL IN A LINE THAT IS A COMMENT
 
- upload on /data/uploads/; doesnt work with slash at first!
-
- use std::unique to check duplicates

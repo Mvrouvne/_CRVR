@@ -58,6 +58,7 @@ Request::Request()
     _errorStatus[411] = " Length Required";
     _errorStatus[413] = " Entity Too Large";
     _errorStatus[414] = " Request-URI Too Long";
+    _errorStatus[415] = " Unsupported Media Type";
     _errorStatus[500] = " Internal Server Error";
     _errorStatus[501] = " Not Implemented";
     _errorStatus[505] = " HTTP Version Not Supported";
@@ -579,34 +580,6 @@ void Request::processHeaders(const string& headerStr)
         }
 }
 
-void Request::uploadCheckers()
-{
-    if (locIndex != -1 && !_serv_conf.getLocs()[locIndex].locHasPOSTallowed())
-    {
-        bodyDone = true;
-        ResponseCode = 405;
-        throw ResponseCode;
-    }
-    else if (locIndex != -1 && (!_serv_conf.getLocs()[locIndex].getUpload().size() || _serv_conf.getLocs()[locIndex].getUpload()[0] == "off"))
-    {
-        bodyDone = true;
-        ResponseCode = 400;
-        throw ResponseCode;
-    }
-    else if (locIndex != -1)
-    {
-        uploadPath = _serv_conf.getLocs()[locIndex].getUpload()[1];
-        DIR*        dir = opendir(uploadPath.c_str());
-        if (!dir)
-        {
-            bodyDone = true;
-            ResponseCode = 400;
-            throw ResponseCode;
-        }
-        closedir(dir);
-    }
-}
-
 string removeConsecutiveSlashes(string str)
 {
     string cleanPath;
@@ -629,6 +602,41 @@ string removeConsecutiveSlashes(string str)
     }
     return cleanPath;
 }
+
+void Request::uploadCheckers()
+{
+    if (locIndex != -1 && !_serv_conf.getLocs()[locIndex].locHasPOSTallowed())
+    {
+        bodyDone = true;
+        ResponseCode = 405;
+        throw ResponseCode;
+    }
+    else if (locIndex != -1 && (!_serv_conf.getLocs()[locIndex].getUpload().size() || _serv_conf.getLocs()[locIndex].getUpload()[0] == "off"))
+    {
+        bodyDone = true;
+        ResponseCode = 403;
+        throw ResponseCode;
+    }
+    else if (locIndex != -1)
+    {
+        // check SLASH
+        uploadPath = _serv_conf.getLocs()[locIndex].getUpload()[1];
+        uploadPath = removeConsecutiveSlashes(uploadPath);
+        if (!uploadPath.empty() && uploadPath[0] == '/')
+            uploadPath.erase(0, 1);
+        if (!uploadPath.empty() && uploadPath[uploadPath.size() - 1] != '/')
+            uploadPath += "/";
+        DIR*        dir = opendir(uploadPath.c_str());
+        if (!dir)
+        {
+            bodyDone = true;
+            ResponseCode = 404;
+            throw ResponseCode;
+        }
+        closedir(dir);
+    }
+}
+
 
 int Request::serverIndexFinder(string servName, string port)
 {
@@ -857,6 +865,17 @@ void Request::firstComingRequest(string& myBuff, int len)
         if (_methode == "POST")
         {
             uploadCheckers();
+            // if content type not empty and == multipart data ==> not imlemented
+            if (_req_header["Content-Type"].empty())
+            {
+                ResponseCode = 400;
+                throw ResponseCode;
+            }
+            else if (_req_header["Content-Type"] == "application/x-www-form-urlencoded")
+            {
+                ResponseCode = 501;
+                throw ResponseCode;
+            }
             if(_isChunked || _isContentLength)
             {
                 if (_isContentLength)
@@ -875,7 +894,10 @@ void Request::firstComingRequest(string& myBuff, int len)
                 y >> n;
                 std::string typo = _contentType[_req_header["Content-Type"]];
                 if (typo.empty())
-                    typo = "txt";
+                {
+                    ResponseCode = 415;
+                    throw ResponseCode;
+                }
                 fileName = uploadPath + "/file-number=" + n + "." + typo;
                 if (_isFile(fileName.c_str()))
                 {
@@ -898,17 +920,13 @@ void Request::firstComingRequest(string& myBuff, int len)
             }
             if (!myBuff.substr(endOfHeaders + 4).empty())
                 initialBody = myBuff.substr(endOfHeaders + 4); //1024-end - 4
-            // bodyRead += initialBody.size();
         }
         // Mark headers as parsed
         headersParsed = true;
         if(_methode == "GET" || _methode == "DELETE")
         {
-            // exit (0);
             ResponseCode = 0;
             throw ResponseCode;
-            // RequestCatch = true;
-            // return;
         }
     }
 }
@@ -1804,7 +1822,11 @@ void Request::fileReqHandling(int clientSocket)
         if(!getContentType(_url.substr(_url.find('.') + 1)).empty())
             extent =  getContentType(_url.substr(_url.find('.') + 1));
         else
-            extent = "text/plain";
+        {
+            ResponseCode = 415;
+            throw ResponseCode;
+            // extent = "text/plain";
+        }
         sendHtmlResponseFile(clientSocket, 200, _errorStatus[200], pathToLocation, extent);
         ResponseCode = 0;
         if(ResponseSent)
