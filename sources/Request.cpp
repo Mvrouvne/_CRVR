@@ -566,8 +566,11 @@ void Request::processHeaders(const string& headerStr)
                         // return;
                     }
                 }
-                // add boundary check
-
+            }
+            else
+            {
+                ResponseCode = 400;
+                throw ResponseCode;
             }
         }
         // add boundary check
@@ -750,6 +753,7 @@ void Request::firstComingRequest(string& myBuff, int len)
     if (endOfFirstLine != string::npos) 
     {
         string firstLine = myBuff.substr(0, endOfFirstLine);
+
         size_t firstSpace = firstLine.find(32);
         size_t secondSpace = firstLine.find(32, firstSpace + 1);
         if (firstSpace != string::npos && secondSpace != string::npos) 
@@ -800,8 +804,7 @@ void Request::firstComingRequest(string& myBuff, int len)
         throw ResponseCode;
         // return;
     }
-    // std::cout<< "OUT" << std::endl;
-    // exit (0);
+
     // Find the start of the headers
     size_t startOfHeaders = endOfFirstLine + 2; // Skip '\r\n'
 
@@ -1117,13 +1120,9 @@ void Request::locationMatcher()
     if(rootLocIndex == -1)
     {
         if(firstDirInPath[firstDirInPath.size() - 1] == '/')
-        {
             locIndex = _locationPatternMatcher(firstDirInPath.substr(0, firstDirInPath.size() - 1));
-        }
         else
-        {
             locIndex = _locationPatternMatcher(firstDirInPath);
-        }
 
         if(locIndex == -1)
         {
@@ -1225,11 +1224,6 @@ void Request::Requesting(int _socFd)
             ResponseCode = 500;
             throw ResponseCode;
         }
-        // if (bytesRead < 0)
-        // {
-        //     std::cout << "2" << strerror(errno) << std::endl;
-        //     exit (EXIT_FAILURE);
-        // }
 
         if(!headersParsed)
         {
@@ -1903,19 +1897,13 @@ void Request::handleContentRequest(int clientSocket)
     }
     catch(...)
     {
-        cout << "->" << ResponseCode << " ---- " << boolalpha << ResponseSent << endl;
-        // exit(0);
         if(ResponseCode == 301)
         {
-            // cout << "---->" << pathToLocation << endl;
-            // exit(0);
             sendMovedPermanently(clientSocket, _url);
             ResponseCode = 0;
         }
         if (ResponseCode)
         {
-            // cout << "-->" << pathToLocation << endl;
-            // exit(0);
             cout << "~~> ERROR CODE CATCHED = " << _errorStatus[ResponseCode] << "<~~" << endl;
             generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
         }

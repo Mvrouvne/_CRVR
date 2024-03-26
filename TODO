@@ -215,14 +215,17 @@ check cgi-output 500 Internal Server Error Status
 
 check if a location pattern is like /hello/ll
 
-🛑 IF INDEX IS GIVEN AS CGI, IT SHOULD BE TREATED AS CGI
-
-CHECK FOR DUPLICATED ATTRIBUTES IN LOCATION
-
-🛑 UNCHECK BRACKETS IF EVEN WILL IN A LINE THAT IS A COMMENT
-
 upload on /data/uploads/; doesnt work with slash at first!
 
-use std::unique to check duplicates
-
-CHECK IF LOCATION IS LIKE location{}      or server{ {}
+    location {
+            pattern /;
+            return /data/index.html;
+            autoindex on;
+            allow_methods GET POST DELETE;
+            upload on data/uploads;
+            index /index.html;
+            cgi on;
+            cgi_php /usr/bin/php-cgi .php;
+            cgi_py /usr/bin/python3 .py;
+            cgi_sh /usr/bin/sh .sh;
+    } ==> should be infinite redirections??

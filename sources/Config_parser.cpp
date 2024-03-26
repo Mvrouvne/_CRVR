@@ -454,6 +454,14 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
 		// 	errorHolder("pattern name in " + holder + " is missing a SLASH!");
 		consecutiveSlashsFinder(holder);
+		string str = holder;
+		if(str[0] == '/')
+			str = str.erase(0, 1);
+		if(str[str.size() - 1] == '/')
+			str = str.erase(str.size() - 1);
+		cout << str << endl;
+		if(str.find('/') != string::npos)
+			errorHolder("pattern given has to be an exact match!");
 		loc.setPattern(holder);
 	}
 	else if (token == "root") {
@@ -486,7 +494,7 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 			holder.erase(holder.size() - 1);
 		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
 		// 	errorHolder("return value in " + holder + " is missing a SLASH!");
-		consecutiveSlashsFinder(holder);
+		// consecutiveSlashsFinder(holder);
 		loc.setRedirection(holder);
 	}
 	else if (token == "upload") {
@@ -630,6 +638,8 @@ void fetchingServBLocks(istringstream &iss, Server &serv, vector<string> &DupsVe
 
 void checkDuplicatedForAttributes(vector<string> Attrs)
 {
+	if(Attrs.size() == 0)
+		return;
 	vector<string>::iterator it = Attrs.begin();
 	for(; it + 1 != Attrs.end(); it++)
 	{
@@ -896,7 +906,7 @@ void Config::handle_requests()
 			if (req.find(events[i].data.fd) != req.end())
 			{
 				req[events[i].data.fd].endTime = clock();
-				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 7) && req[events[i].data.fd].startTime > 0)
+				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 77) && req[events[i].data.fd].startTime > 0)
 				{
 					if (req[events[i].data.fd].infile.is_open())
 						req[events[i].data.fd].infile.close();
