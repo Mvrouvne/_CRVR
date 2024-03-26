@@ -18,6 +18,8 @@ class	CGI
 		pid_t		pid;
 		FILE*		file;
 		FILE*		file_in;
+		FILE*		errFile;
+		
 		std::string	pipeRead;
 		std::string cgiRoot;
 		std::string _url;

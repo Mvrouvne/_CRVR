@@ -132,6 +132,9 @@ int	CGI::cgi_handler(Request& reqObj)
                 if (!file_in)
                     kill(getpid(), SIGKILL);
             }
+            errFile = std::freopen("/dev/null", "rw", stderr);
+            if (!errFile)
+                kill(getpid(), SIGKILL);
             if (execve(args[0], args, env) < 0)
                 kill(getpid(), SIGKILL);
             kill(getpid(), SIGKILL);

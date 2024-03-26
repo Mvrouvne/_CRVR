@@ -194,28 +194,15 @@ Remove slash from loc in pattern (TEST SLASH AT THE END OF URL)
 
 http://127.0.0.1:8080/data/cgi-bin/dsdsf.sh         /usr/bin/sh: 0: cannot open /home/spvnky/Desktop/42_WebServ//data/cgi-bin/dsdsf.sh: No such file
 
-unlink("./data/cgi-bin/cgi-output"); 
-
-Handdle URL with slash or without --> ...../data
-
-change "./data/cgi-bin/cgi-output" path for cgi
-
 remove strerrno from std::cout << "Generate Error: " << strerror(errno) << std::endl;
 
 🛑 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL); ==> should we check for this fail
 
 lsof after cgi !!!!!!!!
 
-
-if i try to post with uploads is off   exet status ===> 40
-
 415 Unsupported Media Type ==> whene try to post with type not found on meme_types.
 
 check cgi-output 500 Internal Server Error Status
-
-check if a location pattern is like /hello/ll
-
-upload on /data/uploads/; doesnt work with slash at first!
 
     location {
             pattern /;

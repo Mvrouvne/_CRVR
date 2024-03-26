@@ -226,8 +226,6 @@ void validateLocation(Location &loc)
 	if(loc.getPattern()[0] == '\0' || loc.getAllowedMethods().size() == 0)
 		errorHolder(" Location pattern or allowed methods required in " + loc.getPattern());
 	
-	//should parse the pattern path
-
 	/* Allowed method */
 
 	vector<string>::iterator it = loc.getAllowedMethods().begin();
@@ -459,7 +457,6 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 			str = str.erase(0, 1);
 		if(str[str.size() - 1] == '/')
 			str = str.erase(str.size() - 1);
-		cout << str << endl;
 		if(str.find('/') != string::npos)
 			errorHolder("pattern given has to be an exact match!");
 		loc.setPattern(holder);

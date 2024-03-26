@@ -494,6 +494,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
         else
         {
             sendHtmlResponseFile(cli_fd, error_code, status, _serv_conf.getErrorPages()[1], "text/html");
+            return;
         }
     }
     if(!flag || (flag && ResponseCode != 200))
@@ -521,8 +522,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
         {
             std::cout << "Generate Error: " << strerror(errno) << std::endl;
         }
-        // std::cout << ResponseCode << std::endl;
-        // exit (0);
+
         ResponseSent = true;
         if(cgiDone)
             unlink(filePathstr.c_str());
@@ -1188,7 +1188,6 @@ void Request::locationMatcher()
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
-            cout << "-->" << firstDirInPath << endl;
             ResponseCode = 404;
             throw ResponseCode;
         }
@@ -1266,6 +1265,13 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     {
         memset(_toRead, 0, SIZE);
         infile.read(_toRead, SIZE);
+        string statusReceived = _toRead;
+        if(statusReceived.find("Status: ") != string::npos)
+        {
+            ResponseCode = _stoi(statusReceived.substr(statusReceived.find(32), 4));
+            generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
+            return;
+        }
         // if (send(clientSocket, _toRead, infile.gcount(), 0) && filePath.compare("./favicon.ico"))
         if (send(clientSocket, _toRead, infile.gcount(), 0) < 0)
         {
@@ -1725,7 +1731,6 @@ void Request::dirReqHandling(int clientSocket)
         // cheking it's return
         if(mainLoc.isRedirected())
         {   
-            cout << "----cc----------->" << pathToLocation << endl;
             sendMovedPermanently(clientSocket, _serv_conf.getLocs()[locIndex].getRedirection());
             throw ResponseCode;
         }
@@ -1733,7 +1738,6 @@ void Request::dirReqHandling(int clientSocket)
         // cheking index
         else if(mainLoc.isIndexed() && !cgiDone)
         {
-            std::cout << "DKHAAL NORMAL" << std::endl;
             pathToLocation += indexFileOnly;
             // string fullPath;
             // if(!mainLoc.getRoot().empty())
