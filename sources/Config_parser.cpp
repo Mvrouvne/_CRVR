@@ -489,7 +489,8 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 		iss >> holder;
 		if(holder[holder.size() - 1] == ';')
 			holder.erase(holder.size() - 1);
-		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
+		if(holder[0] != '/' && holder.substr(0, 4) != "http")
+			holder = "/" + holder;
 		// 	errorHolder("return value in " + holder + " is missing a SLASH!");
 		// consecutiveSlashsFinder(holder);
 		loc.setRedirection(holder);
@@ -875,7 +876,6 @@ void Config::handle_requests()
 						if (!req[events[i].data.fd].getcgiTrue() && loc.isIndexed() && !loc.isRedirected())
 						{
 							req[events[i].data.fd].setUrl(req[events[i].data.fd].old_url);
-							std::cout << "eywaa ==> " << req[events[i].data.fd]._url << std::endl;
 						}
 						if (req[events[i].data.fd].getcgiTrue() && !Code)
 							continue;
@@ -903,7 +903,7 @@ void Config::handle_requests()
 			if (req.find(events[i].data.fd) != req.end())
 			{
 				req[events[i].data.fd].endTime = clock();
-				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 77) && req[events[i].data.fd].startTime > 0)
+				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 7) && req[events[i].data.fd].startTime > 0)
 				{
 					if (req[events[i].data.fd].infile.is_open())
 						req[events[i].data.fd].infile.close();

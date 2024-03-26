@@ -1128,7 +1128,7 @@ void Request::locationMatcher()
 
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
-        _url.erase(1,2);
+        _url.erase(1,1);
 
     // if(!_url.substr(0, _url.find('/', 1) + 1).empty() && _url.find("/..") != 0)
     if(_url.find("/..") != 0)
@@ -1179,7 +1179,7 @@ void Request::locationMatcher()
             else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
                 pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
         }
-        
+
     // }
     // else
     // {
@@ -1240,10 +1240,8 @@ void Request::locationMatcher()
     }
     if(firstDirInPath[firstDirInPath.size() - 1] != '/' && locIndex != rootLocIndex )
     {
-        std::cout << "--> "<< firstDirInPath << std::endl;
         if(!_isFile(pathToLocation.c_str()))
             _url += '/';
-        // std::cout << "HNAA -- " << pathToLocation << std::endl;
         ResponseCode = 301;
         throw ResponseCode;
     }
@@ -1624,6 +1622,23 @@ bool Request::CheckPermissions(const char *path)
     return (true);
 }
 
+bool check_dir_is_empty(const char* path)
+{
+    DIR *ptr_Dir = opendir(path);
+    struct dirent *ptr_dirent;
+
+    while((ptr_dirent = readdir(ptr_Dir)) != NULL)
+    {
+        if (strcmp(ptr_dirent->d_name, ".") != 0 && strcmp(ptr_dirent->d_name, "..") != 0)
+        {
+            closedir(ptr_Dir);
+            return (false);
+        }
+    }
+    closedir(ptr_Dir);
+    return (true);
+}
+
 bool Request::RemoveDirectory(const char *path) 
 {
     DIR *ptr_dir = opendir(path);
@@ -1633,6 +1648,7 @@ bool Request::RemoveDirectory(const char *path)
     {
         while((ptr_dirent = readdir(ptr_dir)) != NULL)
         {
+             
             if (strcmp(ptr_dirent->d_name, ".") != 0 && strcmp(ptr_dirent->d_name, "..") != 0)
             {
                 string path_name = string(path) + ptr_dirent->d_name;
@@ -1641,28 +1657,21 @@ bool Request::RemoveDirectory(const char *path)
                 {
                     if (CheckPermissions(path_name.c_str()) == true)
                         RemoveDirectory(path_name.c_str());
-                    else
-                    {
-                        closedir(ptr_dir);
-                        return(false);
-                    }
                 }
                 else if(ptr_dirent->d_type == DT_REG)
                 {
+                    // cout << path_name << endl;
                     if (CheckPermissions(path_name.c_str()) ==  true)
                         remove(path_name.c_str());
-                    else
-                    {
-                        closedir(ptr_dir);
-                        return(false);
-                    }
                 }
             }
         }
     }   
+    if (check_dir_is_empty(path))
+        rmdir(path);
+    else
+        return false;
     closedir(ptr_dir);
-
-    rmdir(path);
     return (true);
 }
 
@@ -1683,35 +1692,26 @@ int Request::Check_Path(const char* path)
         return (404);
 
     std::string pp = path;
-    if(pp.find(_serv_conf.getRoot()) == string::npos)
-        pp = _serv_conf.getRoot() + pp.substr(1);
-    std::string root = _serv_conf.getRoot();
-    if (root.empty())
-        return (404);
-
-    if(pp[pp.size() - 1] != '/')
-    {
-        struct stat path_stat;
-        if (stat(pp.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
-        {
-            // Ajouter le slash seulement si c'est un répertoire
-            pp += '/';
-        }
-    }
 
     char path_abso[PATH];
     char *resultat = realpath(pp.c_str(), path_abso);
-
     if (resultat != NULL) 
     {
+        string location_path;
+        if (_serv_conf.getLocs()[locIndex].getRoot().empty())
+            location_path = _serv_conf.getRoot();
+
+        else if (!_serv_conf.getLocs()[locIndex].getRoot().empty())
+            location_path = _serv_conf.getLocs()[locIndex].getRoot();
+
         std::string str_path = path_abso;
 
-        size_t findPath = str_path.find(root);
+        size_t findPath = str_path.find(location_path);
 
         if (findPath != std::string::npos)
         {
             std::string temp = str_path;
-            std::string erasy = temp.erase(0,root.size());
+            std::string erasy = temp.erase(0,location_path.size());
 
             if (erasy.empty() == false)
             {
@@ -1733,9 +1733,11 @@ void Request::DeleteMethod(const char* path)
         ResponseCode = 405;
         throw ResponseCode;
     }
+
     if (Check_Path(path) == 204)
     {
         std::string pp = path;
+
         if (isDirectoryCheck(pp.c_str()) == 0)
         {
             if (CheckPermissions(pp.c_str()) == true)
@@ -1744,13 +1746,18 @@ void Request::DeleteMethod(const char* path)
                     ResponseCode = 204;
 
                 else
+                {
                     ResponseCode = 403;
+                }
 
             }
         }
 
         else if(isDirectoryCheck(pp.c_str()) == -1)
+        {
+
             ResponseCode = 403;
+        }
 
         else if(isFile(pp.c_str()))
         {
@@ -1760,7 +1767,9 @@ void Request::DeleteMethod(const char* path)
                     ResponseCode = 204;
             }
             else
+            {
                 ResponseCode = 403;
+            }
         }
         else
             ResponseCode = 404;
@@ -1768,9 +1777,7 @@ void Request::DeleteMethod(const char* path)
     else if(Check_Path(path) == 403)
         ResponseCode = 403;
     else if(Check_Path(path) == 404)
-    {
         ResponseCode = 404;
-    }
     throw ResponseCode;
 }
 

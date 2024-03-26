@@ -31,6 +31,7 @@ class	CGI
         clock_t 	cgiEndTime;
 		int			status;
 		char uploadPath[PATH_MAX];
+		std::string toUnlink;
 	public:
 		std::string getcgiRoot()
 		{
