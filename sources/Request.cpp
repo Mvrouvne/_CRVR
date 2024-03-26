@@ -1295,14 +1295,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     }
     else if (!infile.is_open()) 
     {
-        // static int i;
-        // cout << "******* >>" << ResponseCode << endl;
-        // if(i == 2)
-        // {
-        //     cout << "-->" << ResponseCode << endl;
-        //     exit(0);
-        // }
-        // i++;
         if(!_firstReadedtry && !cgiDone && !cgiTrue)
         {
             string response;

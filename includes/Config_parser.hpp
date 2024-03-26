@@ -17,6 +17,8 @@ class Config
         vector<Server> _servers;
         vector<Socket> _sockets;
         map<int, Server> _map_servers;
+        vector<string> duplicatesVecServ;
+        vector<string> duplicatesVecLoc;
         bool _hasRoot;
         bool deleted;
 

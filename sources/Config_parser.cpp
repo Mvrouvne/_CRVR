@@ -410,13 +410,14 @@ void consecutiveSlashsFinder(string path)
 	}
 }
 
-void fetchingLocBLocks(istringstream &iss, Location &loc)
+void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVec)
 {
 	vector<string> vec;
 	string token;
 	string holder;
 	iss >> token;
 
+	DupsVec.push_back(token);
 	if (token == "pattern") {
 		iss >> holder;
 		if(holder[holder.size() - 1] == ';')
@@ -507,9 +508,9 @@ void fetchingLocBLocks(istringstream &iss, Location &loc)
 	}
 	else
 		errorHolder("stranger attribute found as " + iss.str());
-	
 	if(iss.good())
 		errorHolder("attribute [" + iss.str() + " ] got an issue");
+	
 }
 
 unsigned long long _stoull(string &str)
@@ -531,11 +532,12 @@ bool isValueOverflowingULLONG_MAX(const std::string& valueStr) {
     return false;
 }
 
-void fetchingServBLocks(istringstream &iss, Server &serv)
+void fetchingServBLocks(istringstream &iss, Server &serv, vector<string> &DupsVec)
 {
 	string token;
 	string holder;
 	iss >> token;
+	DupsVec.push_back(token);
 	if (token == "listen") 
 	{
 		iss >> holder;
@@ -597,6 +599,22 @@ void fetchingServBLocks(istringstream &iss, Server &serv)
 		errorHolder("attribute [" + iss.str() + " ] got an issue");
 }
 
+void checkDuplicatedForAttributes(vector<string> Attrs)
+{
+	vector<string>::iterator it = Attrs.begin();
+	for(; it + 1 != Attrs.end(); it++)
+	{
+		vector<string>::iterator itt = it + 1;
+		for(; itt != Attrs.end(); itt++)
+		{
+			if(*it == *itt)
+			{
+				return errorHolder("Duplicated attributes in `" + *it + "`");
+			}
+		}
+	}
+}
+
 void Config::catchConfig(const string &conf_file)
 {
 	string line;
@@ -635,11 +653,13 @@ void Config::catchConfig(const string &conf_file)
 					continue;
 				}
 				istringstream issObj(line);
-				fetchingServBLocks(issObj, serv);
+				fetchingServBLocks(issObj, serv, duplicatesVecServ);
 				getline(conf, line);
 			}
 			if(!spaceRemover(line).compare("location{"))
 			{
+				checkDuplicatedForAttributes(duplicatesVecServ);
+				duplicatesVecServ.clear();
 				validServerBlocks(serv);
 				_servers.push_back(serv);
 				serv = Server();
@@ -663,7 +683,7 @@ void Config::catchConfig(const string &conf_file)
 					continue;
 				}
 				istringstream iss(line);
-				fetchingLocBLocks(iss, loc);
+				fetchingLocBLocks(iss, loc, duplicatesVecLoc);
 				getline(conf, line);
 
 			}
@@ -672,6 +692,8 @@ void Config::catchConfig(const string &conf_file)
 				errorHolder("Location needs a root path!");
 			if(!spaceRemover(line).compare("}"))
 			{
+				checkDuplicatedForAttributes(duplicatesVecLoc);
+				duplicatesVecLoc.clear();
 				validateLocation(loc);
 				_locations.push_back(loc);
 				loc = Location(); //reset
