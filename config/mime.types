@@ -879,6 +879,7 @@ smv:video/x-smv
 smzip:application/vnd.stepmania.package
 snd:audio/basic
 snf:application/x-font-snf
+sh:application/x-sh
 so:application/octet-stream
 spc:application/x-pkcs7-certificates
 spdx:text/spdx
