@@ -201,18 +201,3 @@ remove strerrno from std::cout << "Generate Error: " << strerror(errno) << std::
 lsof after cgi !!!!!!!!
 
 415 Unsupported Media Type ==> whene try to post with type not found on meme_types.
-
-check cgi-output 500 Internal Server Error Status
-
-    location {
-            pattern /;
-            return /data/index.html;
-            autoindex on;
-            allow_methods GET POST DELETE;
-            upload on data/uploads;
-            index /index.html;
-            cgi on;
-            cgi_php /usr/bin/php-cgi .php;
-            cgi_py /usr/bin/python3 .py;
-            cgi_sh /usr/bin/sh .sh;
-    } ==> should be infinite redirections??

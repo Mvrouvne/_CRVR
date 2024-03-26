@@ -113,6 +113,7 @@ class Request : public Server
         size_t  locationIndex;
         char        _toRead[SIZE];
         bool _firstReadedtry;
+        bool _firstCgiTry;
         Request();
         Request(const Request& obj);
         Request &operator=(const Request& obj);

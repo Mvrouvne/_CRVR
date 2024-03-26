@@ -64,6 +64,7 @@ Request::Request()
     _errorStatus[504] = " Gateaway Timeout";
 
     _firstReadedtry = false;
+    _firstCgiTry = false;
     epollFlag = false; 
     readFlag = false;
     doneRead = false;
@@ -126,6 +127,7 @@ Request &Request::operator=(const Request& obj)
     _serv_conf = obj._serv_conf;
     cgi_obj = obj.cgi_obj;
     _firstReadedtry = false;
+    _firstCgiTry = false;
     servers_map = obj.servers_map;
     epollFlag = false;
     readFlag = false;
@@ -1105,45 +1107,70 @@ void Request::locationMatcher()
     //     ResponseCode = 0;
     //     throw ResponseCode;
     // }
+
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
         _url.erase(1,2);
 
-    if(!_url.substr(0, _url.find('/', 1) + 1).empty() && _url.find("/..") != 0)
-        firstDirInPath = _url.substr(0, _url.find('/', 1) + 1);
-    else if(rootLocIndex >= 0)
+    // if(!_url.substr(0, _url.find('/', 1) + 1).empty() && _url.find("/..") != 0)
+    if(_url.find("/..") != 0)
+    {
+        if(_url.find('/', 1) != string::npos)
+            firstDirInPath = _url.substr(0, _url.find('/', 1) + 1);
+        else
+            firstDirInPath = _url;
+    }
+    if (_url.find("/..") != 0 && firstDirInPath.empty() && rootLocIndex == -1)
+    {
+            std::cout <<"..> " << locIndex << std::endl;
+        ResponseCode = 404;
+        throw ResponseCode;
+    }
+    else if (_url.find("/..") != 0 && firstDirInPath.empty() && rootLocIndex >= 0)
         firstDirInPath = '/';
-    else
-        firstDirInPath = _url;
+
+    // else if(rootLocIndex >= 0)
+    //     firstDirInPath = '/';
+    // else
+    //     firstDirInPath = _url;
 
     
-    if(rootLocIndex == -1)
-    {
+    // if(rootLocIndex == -1)
+    // {
         if(firstDirInPath[firstDirInPath.size() - 1] == '/')
-            locIndex = _locationPatternMatcher(firstDirInPath.substr(0, firstDirInPath.size() - 1));
-        else
-            locIndex = _locationPatternMatcher(firstDirInPath);
+            firstDirInPath.erase(firstDirInPath.size());
+        locIndex = _locationPatternMatcher(firstDirInPath);
 
-        if(locIndex == -1)
+        if(locIndex == -1 && rootLocIndex == -1)
         {
             ResponseCode = 404;
             throw ResponseCode;
         }
-
-        if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
-            pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(firstDirInPath.size());
-        else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
-            pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
+        else if (rootLocIndex >= 0 && locIndex == -1)
+        {
+            locIndex = rootLocIndex;
+            if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
+                pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
+            else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
+                pathToLocation = _serv_conf.getRoot() + _url.substr(1);
+        }
+        else if ((rootLocIndex == -1 && locIndex >= 0) || (rootLocIndex >= 0 && locIndex >= 0))
+        {
+            if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
+                pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(firstDirInPath.size());
+            else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
+                pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
+        }
         
-    }
-    else
-    {
-        locIndex = rootLocIndex;
-        if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
-            pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
-        else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
-            pathToLocation = _serv_conf.getRoot() + _url.substr(1);
-    }
+    // }
+    // else
+    // {
+    //     locIndex = rootLocIndex;
+    //     if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
+    //         pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
+    //     else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
+    //         pathToLocation = _serv_conf.getRoot() + _url.substr(1);
+    // }
 
     if(pathToLocation.find("/..") != string::npos)
     {
@@ -1175,6 +1202,7 @@ void Request::locationMatcher()
                 // return;
             }
         }
+        std::cout << "HNAA -- " << pathToLocation << std::endl;
     }
 
     if(!isDirectory(pathToLocation.c_str()) && !_isFile(pathToLocation.c_str()) && _url != "/favicon.ico")
@@ -1192,10 +1220,12 @@ void Request::locationMatcher()
             throw ResponseCode;
         }
     }
-
-    if(firstDirInPath[firstDirInPath.size() - 1] != '/')
+    if(firstDirInPath[firstDirInPath.size() - 1] != '/' && locIndex != rootLocIndex )
     {
-        _url += '/';
+        std::cout << "--> "<< firstDirInPath << std::endl;
+        if(!_isFile(pathToLocation.c_str()))
+            _url += '/';
+        // std::cout << "HNAA -- " << pathToLocation << std::endl;
         ResponseCode = 301;
         throw ResponseCode;
     }
@@ -1265,14 +1295,29 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     {
         memset(_toRead, 0, SIZE);
         infile.read(_toRead, SIZE);
-        string statusReceived = _toRead;
-        if(statusReceived.find("Status: ") != string::npos)
-        {
-            ResponseCode = _stoi(statusReceived.substr(statusReceived.find(32), 4));
-            generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
-            return;
-        }
         // if (send(clientSocket, _toRead, infile.gcount(), 0) && filePath.compare("./favicon.ico"))
+        if(cgiDone && !_firstCgiTry)
+        {
+            string statusReceived = _toRead;
+            if(statusReceived.find("Status: ") != string::npos)
+            {
+                ResponseCode = _stoi(statusReceived.substr(statusReceived.find(32), 4));
+                generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
+                return;
+            }
+            else
+            {
+                std::string rep;
+
+                if (!cgiIsPhp)
+                    rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+                else
+                    rep += "HTTP/1.1 200 OK\r\n";
+                if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
+                    std::cout << "8" << strerror(errno) << std::endl;
+            }
+            _firstCgiTry = true;
+        }
         if (send(clientSocket, _toRead, infile.gcount(), 0) < 0)
         {
             ResponseSent = true;
@@ -1326,14 +1371,15 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
             _firstReadedtry = true;
-            std::string rep;
+            
+            // std::string rep;
 
-            if (!cgiIsPhp)
-                rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-            else
-                rep += "HTTP/1.1 200 OK\r\n";
-            if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
-                std::cout << "8" << strerror(errno) << std::endl;
+            // if (!cgiIsPhp)
+            //     rep += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+            // else
+            //     rep += "HTTP/1.1 200 OK\r\n";
+            // if (send(clientSocket, rep.c_str(), rep.length(), 0) == -1)
+            //     std::cout << "8" << strerror(errno) << std::endl;
         }
     }
 }
@@ -1736,7 +1782,7 @@ void Request::dirReqHandling(int clientSocket)
         }
 
         // cheking index
-        else if(mainLoc.isIndexed() && !cgiDone)
+        else if(mainLoc.isIndexed() && !cgiDone && mainLoc.locHasGETallowed())
         {
             pathToLocation += indexFileOnly;
             // string fullPath;
@@ -1773,15 +1819,15 @@ void Request::dirReqHandling(int clientSocket)
             throw ResponseCode;
         }
 
-        else if(!mainLoc.locHasGETallowed())
+        else if(!mainLoc.isAutoindexed())
         {
-            ResponseCode = 405;
+            ResponseCode = 403;
             throw ResponseCode;
         }
 
-        else
+        else if(!mainLoc.locHasGETallowed())
         {
-            ResponseCode = 403;
+            ResponseCode = 405;
             throw ResponseCode;
         }
     }

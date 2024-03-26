@@ -27,7 +27,6 @@ void Socket::init_serv(Server &_config)
     }
 	if (setsockopt(_socket_fd,SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) == -1)
 	{
-		// close(_socket_fd);
 		cout << "setSocket -> " << strerror(errno) << endl;
 	}
     _host_addr.sin_family = AF_INET;
