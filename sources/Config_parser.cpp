@@ -392,6 +392,20 @@ void checkDuplicatedLocs(vector<Location> _locs)
 	}
 }
 
+void checkDuplicatedServs(vector<Server> servs)
+{
+	vector<Server>::iterator it = servs.begin();
+	for(; it + 1 != servs.end(); it++)
+	{
+		vector<Server>::iterator itt = it + 1;
+		for(; itt != servs.end(); itt++)
+		{
+			if(!it->getListen().compare(itt->getListen()) && !it->getHost().compare(itt->getHost()) && !it->getServername().compare(itt->getServername()))
+				return errorHolder("Duplicated Servers!");
+		}
+	}
+}
+
 void consecutiveSlashsFinder(string path)
 {
 	bool prevSlash = false;
@@ -663,6 +677,8 @@ void Config::catchConfig(const string &conf_file)
 				validServerBlocks(serv);
 				_servers.push_back(serv);
 				serv = Server();
+				if(_servers.size() > 1)
+					checkDuplicatedServs(_servers);
 				servFlag = 0;
 				locFlag = 1;
 				serverNbr++; // servers counter
