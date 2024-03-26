@@ -456,7 +456,7 @@ void fetchingLocBLocks(istringstream &iss, Location &loc)
 			holder.erase(holder.size() - 1);
 		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
 		// 	errorHolder("return value in " + holder + " is missing a SLASH!");
-		// consecutiveSlashsFinder(holder);
+		consecutiveSlashsFinder(holder);
 		loc.setRedirection(holder);
 	}
 	else if (token == "upload") {
@@ -796,12 +796,12 @@ void Config::handle_requests()
 				else if(events[i].events & EPOLLOUT && req[events[i].data.fd].getRequestCatch()) // response
 				{
 					req[events[i].data.fd].startTime = clock();
-					Location loc = req[events[i].data.fd].getServConfig().getLocs()[req[events[i].data.fd].getlocIndex()];
 					if (((!req[events[i].data.fd].getResponseCode() || req[events[i].data.fd].getResponseCode() == 201)
 						&& (req[events[i].data.fd].getMethode() == "GET" || req[events[i].data.fd].getMethode() == "POST")
 						&& req[events[i].data.fd].getlocIndex() != -1 && !req[events[i].data.fd].getCgiDone()
-						&& !loc.getCgi().compare("on")))
+						&& !req[events[i].data.fd].getServConfig().getLocs()[req[events[i].data.fd].getlocIndex()].getCgi().compare("on")))
 					{
+						Location loc = req[events[i].data.fd].getServConfig().getLocs()[req[events[i].data.fd].getlocIndex()];
 						if(loc.isIndexed() && !loc.isRedirected() && !req[events[i].data.fd].getcgiTrue())
 						{
 							req[events[i].data.fd].old_url = req[events[i].data.fd]._url;
