@@ -1,5 +1,8 @@
 {
     "files.associations": {
+<<<<<<< HEAD
+        "iostream": "cpp"
+=======
         "iostream": "cpp",
         "array": "cpp",
         "atomic": "cpp",
@@ -52,5 +55,6 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "typeinfo": "cpp"
+>>>>>>> 4a5cc7e702c4f492a825e202d507dcca4456c997
     }
 }

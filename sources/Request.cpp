@@ -1916,6 +1916,8 @@ void Request::handleContentRequest(int clientSocket)
         }
         if (ResponseCode)
         {
+            // cout << "-->" << pathToLocation << endl;
+            // exit(0);
             cout << "~~> ERROR CODE CATCHED = " << _errorStatus[ResponseCode] << "<~~" << endl;
             generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
         }
