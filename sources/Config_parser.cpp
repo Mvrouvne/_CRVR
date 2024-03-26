@@ -189,9 +189,24 @@ int lineCheck(string &line, int &flag, int &flagg)
 bool checkBrackets(const string &conf_file)
 {
 	stack<char> stack;
+	bool inComment = false;
     for (string::const_iterator it = conf_file.begin(); it != conf_file.end(); ++it) 
 	{
         char ch = *it;
+		// Check if we're entering a comment
+        if (ch == '#' && !inComment) {
+            inComment = true;
+        }
+        // Check if we're at the end of a line, thus exiting a comment
+        else if (ch == '\n') {
+            inComment = false;
+        }
+
+        // If we're in a comment, skip this character
+        if (inComment) {
+            continue;
+        }
+
         if (ch == '{') {
             stack.push(ch);
         } 
@@ -211,8 +226,6 @@ void validateLocation(Location &loc)
 	if(loc.getPattern()[0] == '\0' || loc.getAllowedMethods().size() == 0)
 		errorHolder(" Location pattern or allowed methods required in " + loc.getPattern());
 	
-	//should parse the pattern path
-
 	/* Allowed method */
 
 	vector<string>::iterator it = loc.getAllowedMethods().begin();
@@ -439,6 +452,13 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
 		// 	errorHolder("pattern name in " + holder + " is missing a SLASH!");
 		consecutiveSlashsFinder(holder);
+		string str = holder;
+		if(str[0] == '/')
+			str = str.erase(0, 1);
+		if(str[str.size() - 1] == '/')
+			str = str.erase(str.size() - 1);
+		if(str.find('/') != string::npos)
+			errorHolder("pattern given has to be an exact match!");
 		loc.setPattern(holder);
 	}
 	else if (token == "root") {
@@ -471,7 +491,7 @@ void fetchingLocBLocks(istringstream &iss, Location &loc, vector<string> &DupsVe
 			holder.erase(holder.size() - 1);
 		// if(holder[0] != '/' || holder[holder.size() - 1] != '/')
 		// 	errorHolder("return value in " + holder + " is missing a SLASH!");
-		consecutiveSlashsFinder(holder);
+		// consecutiveSlashsFinder(holder);
 		loc.setRedirection(holder);
 	}
 	else if (token == "upload") {
@@ -615,6 +635,8 @@ void fetchingServBLocks(istringstream &iss, Server &serv, vector<string> &DupsVe
 
 void checkDuplicatedForAttributes(vector<string> Attrs)
 {
+	if(Attrs.size() == 0)
+		return;
 	vector<string>::iterator it = Attrs.begin();
 	for(; it + 1 != Attrs.end(); it++)
 	{
@@ -721,7 +743,8 @@ void Config::catchConfig(const string &conf_file)
 			}
 		}
 	}
-
+	if(_locations.size() == 0)
+		errorHolder("No location is provided!");
 	// print();
 	// exit(0);
 	conf.close();
@@ -880,7 +903,7 @@ void Config::handle_requests()
 			if (req.find(events[i].data.fd) != req.end())
 			{
 				req[events[i].data.fd].endTime = clock();
-				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 7) && req[events[i].data.fd].startTime > 0)
+				if ((((double)req[events[i].data.fd].endTime - req[events[i].data.fd].startTime) / CLOCKS_PER_SEC > 77) && req[events[i].data.fd].startTime > 0)
 				{
 					if (req[events[i].data.fd].infile.is_open())
 						req[events[i].data.fd].infile.close();

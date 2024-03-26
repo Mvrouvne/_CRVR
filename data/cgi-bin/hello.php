@@ -1,7 +1,7 @@
 <?php
     // exit (0);
     // dghdghfyj
-    // rgtgxthtvhjfyh
-while(1);
+    rgtgxthtvhjfyh
+// asfqwfhuwef
 // sleep (100);
 ?>

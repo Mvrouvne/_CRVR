@@ -495,6 +495,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
         else
         {
             sendHtmlResponseFile(cli_fd, error_code, status, _serv_conf.getErrorPages()[1], "text/html");
+            return;
         }
     }
     if(!flag || (flag && ResponseCode != 200))
@@ -522,8 +523,7 @@ void Request::generateErrorResponse(int cli_fd, int error_code, const std::strin
         {
             std::cout << "Generate Error: " << strerror(errno) << std::endl;
         }
-        // std::cout << ResponseCode << std::endl;
-        // exit (0);
+
         ResponseSent = true;
         if(cgiDone)
             unlink(filePathstr.c_str());
@@ -567,8 +567,11 @@ void Request::processHeaders(const string& headerStr)
                         // return;
                     }
                 }
-                // add boundary check
-
+            }
+            else
+            {
+                ResponseCode = 400;
+                throw ResponseCode;
             }
         }
         // add boundary check
@@ -758,6 +761,7 @@ void Request::firstComingRequest(string& myBuff, int len)
     if (endOfFirstLine != string::npos) 
     {
         string firstLine = myBuff.substr(0, endOfFirstLine);
+
         size_t firstSpace = firstLine.find(32);
         size_t secondSpace = firstLine.find(32, firstSpace + 1);
         if (firstSpace != string::npos && secondSpace != string::npos) 
@@ -808,8 +812,7 @@ void Request::firstComingRequest(string& myBuff, int len)
         throw ResponseCode;
         // return;
     }
-    // std::cout<< "OUT" << std::endl;
-    // exit (0);
+
     // Find the start of the headers
     size_t startOfHeaders = endOfFirstLine + 2; // Skip '\r\n'
 
@@ -1135,13 +1138,9 @@ void Request::locationMatcher()
     if(rootLocIndex == -1)
     {
         if(firstDirInPath[firstDirInPath.size() - 1] == '/')
-        {
             locIndex = _locationPatternMatcher(firstDirInPath.substr(0, firstDirInPath.size() - 1));
-        }
         else
-        {
             locIndex = _locationPatternMatcher(firstDirInPath);
-        }
 
         if(locIndex == -1)
         {
@@ -1207,7 +1206,6 @@ void Request::locationMatcher()
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
-            cout << "-->" << firstDirInPath << endl;
             ResponseCode = 404;
             throw ResponseCode;
         }
@@ -1243,11 +1241,6 @@ void Request::Requesting(int _socFd)
             ResponseCode = 500;
             throw ResponseCode;
         }
-        // if (bytesRead < 0)
-        // {
-        //     std::cout << "2" << strerror(errno) << std::endl;
-        //     exit (EXIT_FAILURE);
-        // }
 
         if(!headersParsed)
         {
@@ -1290,6 +1283,13 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
     {
         memset(_toRead, 0, SIZE);
         infile.read(_toRead, SIZE);
+        string statusReceived = _toRead;
+        if(statusReceived.find("Status: ") != string::npos)
+        {
+            ResponseCode = _stoi(statusReceived.substr(statusReceived.find(32), 4));
+            generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
+            return;
+        }
         // if (send(clientSocket, _toRead, infile.gcount(), 0) && filePath.compare("./favicon.ico"))
         if (send(clientSocket, _toRead, infile.gcount(), 0) < 0)
         {
@@ -1340,8 +1340,6 @@ void Request::sendHtmlResponseFile(int clientSocket, int errCode ,const string s
                 ResponseSent = true; ///////////////////////////////////////////
                 // throw ResponseCode;
                 return ;
-                cout << "******* >>" << filePath << endl;
-                exit(0);
             }
             struct stat flstat;
             stat(filePath.c_str(), &flstat);
@@ -1751,7 +1749,6 @@ void Request::dirReqHandling(int clientSocket)
         // cheking it's return
         if(mainLoc.isRedirected())
         {   
-            cout << "----cc----------->" << pathToLocation << endl;
             sendMovedPermanently(clientSocket, _serv_conf.getLocs()[locIndex].getRedirection());
             throw ResponseCode;
         }
@@ -1759,7 +1756,6 @@ void Request::dirReqHandling(int clientSocket)
         // cheking index
         else if(mainLoc.isIndexed() && !cgiDone)
         {
-            std::cout << "DKHAAL NORMAL" << std::endl;
             pathToLocation += indexFileOnly;
             // string fullPath;
             // if(!mainLoc.getRoot().empty())
@@ -1927,19 +1923,13 @@ void Request::handleContentRequest(int clientSocket)
     }
     catch(...)
     {
-        cout << "->" << ResponseCode << " ---- " << boolalpha << ResponseSent << endl;
-        // exit(0);
         if(ResponseCode == 301)
         {
-            // cout << "---->" << pathToLocation << endl;
-            // exit(0);
             sendMovedPermanently(clientSocket, _url);
             ResponseCode = 0;
         }
         if (ResponseCode)
         {
-            // cout << "-->" << pathToLocation << endl;
-            // exit(0);
             cout << "~~> ERROR CODE CATCHED = " << _errorStatus[ResponseCode] << "<~~" << endl;
             generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
         }

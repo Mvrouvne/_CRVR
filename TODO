@@ -194,20 +194,11 @@ Remove slash from loc in pattern (TEST SLASH AT THE END OF URL)
 
 http://127.0.0.1:8080/data/cgi-bin/dsdsf.sh         /usr/bin/sh: 0: cannot open /home/spvnky/Desktop/42_WebServ//data/cgi-bin/dsdsf.sh: No such file
 
-unlink("./data/cgi-bin/cgi-output"); 
-
-Handdle URL with slash or without --> ...../data
-
-change "./data/cgi-bin/cgi-output" path for cgi
-
 remove strerrno from std::cout << "Generate Error: " << strerror(errno) << std::endl;
 
 🛑 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL); ==> should we check for this fail
 
 lsof after cgi !!!!!!!!
-
-
-if i try to post with uploads is off   exet status ===> 40
 
 415 Unsupported Media Type ==> whene try to post with type not found on meme_types.
 
@@ -221,3 +212,15 @@ CHECK FOR DUPLICATED ATTRIBUTES IN LOCATION
 
 🛑 UNCHECK BRACKETS IF EVEN WILL IN A LINE THAT IS A COMMENT
 
+    location {
+            pattern /;
+            return /data/index.html;
+            autoindex on;
+            allow_methods GET POST DELETE;
+            upload on data/uploads;
+            index /index.html;
+            cgi on;
+            cgi_php /usr/bin/php-cgi .php;
+            cgi_py /usr/bin/python3 .py;
+            cgi_sh /usr/bin/sh .sh;
+    } ==> should be infinite redirections??
