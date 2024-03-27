@@ -955,7 +955,7 @@ void Request::chunkedHandler(int sock_fd)
         size_t  iBodySize = initialBody.size();
         if (!iBodySize)
         {
-            _isContentLength1stTime = true;
+            _isChunked1stTime = true;
             return;
         }
 		counter = iBodySize;
