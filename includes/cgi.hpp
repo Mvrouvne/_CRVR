@@ -2,8 +2,6 @@
 # define CGI_HPP
 
 #include "include.hpp"
-// #include "Request.hpp"
-// #include "Config_parser.hpp"
 
 class Request;
 

@@ -37,7 +37,6 @@ class Location
         vector<string> &getCGI_PY(void);
         vector<string> &getCGI_PHP(void);
         vector<string> &getCGI_SH(void);
-        // string &getUploadPath(void);
         vector<string> &getAllowedMethods(void);
         
         /* Setters */
@@ -51,7 +50,6 @@ class Location
         void setCGI_PY(vector<string> _cgiPY);
         void setCGI_PHP(vector<string> _cgiPHP);
         void setCGI_SH(vector<string> _cgiSH);
-        // void setUploadPath(const string &uploadPath);
         void setAllowedMethods(vector<string> allow_methds);
 
         /* Methods */

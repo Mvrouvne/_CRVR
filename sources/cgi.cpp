@@ -1,5 +1,5 @@
 #include "../includes/cgi.hpp"
-#include "../includes/Request.hpp"
+#include "../includes/webserver.hpp"
 
 CGI::CGI()
 {
@@ -159,7 +159,6 @@ int	CGI::cgi_handler(Request& reqObj)
 
     if (((double)cgiEndTime - cgiStartTime) / CLOCKS_PER_SEC > 7)
     {
-        std::cout << "==CGI=TimeOut==" << std::endl;
         reqObj.setCgiDone(true);
         kill (pid, SIGKILL);
         waitpid(pid, NULL, 0);

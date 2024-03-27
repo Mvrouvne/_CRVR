@@ -6,7 +6,6 @@
 #include "include.hpp"
 #include "Server.hpp"
 #include "Config_parser.hpp"
-// #include "Request.hpp"
 #include "cgi.hpp"
 
 class CGI;
@@ -30,23 +29,17 @@ class Request : public Server
         char        _buffer[SIZE];
         string myBuff;
 
-        // string        _bufferHelper;
-        // bool headersLimitReached;
-
 
         bool    epollFlag;
         bool    readFlag;
         bool    doneRead;
         bool    RequestCatch;
-        // bool    postFirstImposter;
-
         bool headersParsed;
         int contentLength;
         int bodyRead;
         bool bodyDone;
         bool cgiDone;
         bool cgiTrue;
-        // bool ResponseSent;
         size_t chunkedBytesReaded;
         bool _isContentLength;
         bool _isContentLength1stTime;
@@ -58,9 +51,6 @@ class Request : public Server
         int totalBytesRead;
         string fileName;
 
-
-        // ifstream infile;
-        // ofstream outfile;
         string postCreatedFileName;
         int locIndex;
         int     bytesRead;

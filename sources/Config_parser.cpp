@@ -168,16 +168,15 @@ bool checkBrackets(const string &conf_file)
     for (string::const_iterator it = conf_file.begin(); it != conf_file.end(); ++it) 
 	{
         char ch = *it;
-		// Check if we're entering a comment
+
         if (ch == '#' && !inComment) {
             inComment = true;
         }
-        // Check if we're at the end of a line, thus exiting a comment
+
         else if (ch == '\n') {
             inComment = false;
         }
 
-        // If we're in a comment, skip this character
         if (inComment) {
             continue;
         }
@@ -239,7 +238,7 @@ void validateLocation(Location &loc)
 
 	if(loc.getCgi().compare("on") && loc.getCgi().compare("off"))
 		errorHolder("Invalid Cgi status of the location " + loc.getPattern());
-	if((loc.getCgi() == "off") && (!loc.getCGI_PY().empty() || !loc.getCGI_PHP().empty() || !loc.getCGI_SH().empty())) //!loc.getCgiPY().empty() || !loc.getCgiPHP().empty() || !loc.getCgiSH().empty()
+	if((loc.getCgi() == "off") && (!loc.getCGI_PY().empty() || !loc.getCGI_PHP().empty() || !loc.getCGI_SH().empty()))
 		errorHolder("Useless Cgi path for " + loc.getPattern() + " when CGI is OFF");
 
 	if(!loc.getCgi().compare("on"))
@@ -385,7 +384,6 @@ void consecutiveSlashsFinder(string path)
 	bool prevSlash = false;
 	for (size_t i = 0; i < path.length(); ++i) 
 	{
-		// Check for consecutive slashes
 		if (path[i] == '/') {
 			if (prevSlash) {
 				errorHolder("consecutive SLASH (/) found in " + path);
@@ -750,7 +748,6 @@ void Config::handle_requests()
         event.data.fd = _sockets[i].getSocketFd();
         if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, _sockets[i].getSocketFd(), &event) == -1) 
 		{
-            // close(epoll_fd);
             cout << "epoll add -> " << strerror(errno) << endl;
         }
     }
@@ -765,7 +762,6 @@ void Config::handle_requests()
         if (num_events == -1) 
 		{
             cout << "epoll wait -> " << strerror(errno) << endl;
-            // break;
         }
 
 		//if the call timed out before any file descriptor in the interest list became ready
@@ -783,7 +779,7 @@ void Config::handle_requests()
 
 				//add all clients accepted to a conta
                 if (newsockfd == -1) {
-                    break;
+					continue;
                 }
 				
 				// struct epoll_event event;
@@ -827,7 +823,6 @@ void Config::handle_requests()
 							string urlToServ = req[events[i].data.fd]._url + loc.getIndex();
 							req[events[i].data.fd].setUrl(urlToServ);
 						}
-						// std::cout << "===CGI===" << std::endl;
 						int Code = 0;
 						Code = req[events[i].data.fd].cgi_obj.cgi_handler(req[events[i].data.fd]);
 						if (!req[events[i].data.fd].getcgiTrue() && loc.isIndexed() && !loc.isRedirected())
@@ -845,7 +840,6 @@ void Config::handle_requests()
 					/* close finished socket */
 					if(req[events[i].data.fd].getResponseSent())
 					{
-						std::cout << "-----DELETED-----" << std::endl;
 						if (req[events[i].data.fd].infile.is_open())
 							req[events[i].data.fd].infile.close();
 						if (req[events[i].data.fd].outfile.is_open())

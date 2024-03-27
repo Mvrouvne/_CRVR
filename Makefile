@@ -11,13 +11,13 @@ SRC = 	sources/main.cpp \
 		sources/Server.cpp \
 		sources/Location.cpp \
 		sources/Sockets.cpp \
-		sources/Request.cpp \
+		sources/webserver.cpp \
 		sources/MIMEtypes.cpp \
 		sources/cgi.cpp \
 
 CPP = c++
 
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98 #-fsanitize=address -g3
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g3
 
 RM = rm -f
 

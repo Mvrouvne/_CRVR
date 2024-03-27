@@ -24,8 +24,9 @@ void Socket::init_serv(Server &_config)
     if (_socket_fd == -1)
     {
         cout << "socket -> " << strerror(errno) << endl;
+        return;
     }
-	if (setsockopt(_socket_fd,SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) == -1)
+	if (setsockopt(_socket_fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) == -1)
 	{
 		cout << "setSocket -> " << strerror(errno) << endl;
 	}
@@ -35,12 +36,10 @@ void Socket::init_serv(Server &_config)
     memset(_host_addr.sin_zero, 0, sizeof(_host_addr.sin_zero));
     if (bind(_socket_fd, (struct sockaddr*)&_host_addr, _host_addrlen) == -1) 
     {
-        // close(_socket_fd);
         cout << "bind -> " << strerror(errno) << endl;
     }
     if (listen(_socket_fd, SOMAXCONN) == -1)
     {
-        // close(_socket_fd);
         cout << "listen -> " << strerror(errno) << endl;
     }
 }

@@ -5,7 +5,7 @@
 #include"Server.hpp"
 #include"Location.hpp"
 #include"Sockets.hpp"
-#include"Request.hpp"
+#include"webserver.hpp"
 
 #define NONE "\033[0m"
 #define RED "\033[31m"
@@ -34,7 +34,6 @@ class Config
         int getServerIndex(string &port);
         void print();
         int checkSocket(int fd);
-        // int serverIndexFinder(string servName);
 };
 
 

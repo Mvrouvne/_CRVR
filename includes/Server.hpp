@@ -45,8 +45,6 @@ class Server
         void setSocket(int soc);
         void setMaxBdSize(unsigned long sz);
         void setErrorPages(vector<string> _errPages);
-        
-        // int findBlock(string line, string _target, int i);
 
         /* Methods */
         bool checkSocket(int fd);

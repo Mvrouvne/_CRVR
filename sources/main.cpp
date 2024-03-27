@@ -11,18 +11,15 @@ int main(int ac, char **av)
         Config conf;
  
         if(ac == 2)
-        {
             conf.catchConfig(av[1]);
-            conf.handle_requests();
-            return 0;
-        }
         else if (ac == 1)
-        {
             conf.catchConfig("config/server.conf");
-            conf.handle_requests();
+        else 
+        {
+            cerr << "Bad Args given!" << endl;
             return 0;
         }
-        cerr << "Bad Args given!" << endl;
+        conf.handle_requests();
     }
     catch(exception &e)
     {

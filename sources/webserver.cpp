@@ -1,4 +1,4 @@
-#include"../includes/Request.hpp"
+#include"../includes/webserver.hpp"
 #include"../includes/cgi.hpp"
 
 
@@ -16,7 +16,6 @@ Request::Request()
             s1 = typ.substr(0, typ.find(":"));
             s2 = typ.substr(typ.find(":") + 1, typ.find("\n") - 1);
             _contentType[s2] = s1;
-            // std::cout << "s1==>" << s1 << " s2==> " << s2 << std::endl;
         }
     }
     else
@@ -373,30 +372,6 @@ int findChar(string &str, char c)
     return -1;
 }
 
-const string nameGenerator() 
-{
-    // Get the current time
-    time_t now = time(NULL);
-    
-    // Convert time_t to tm struct for local time
-    struct tm *localTime = localtime(&now);
-    
-    // Use a stringstream to format the time into a string
-    ostringstream nameStream;
-    
-    // You can format the time as you wish; here's a basic YYYYMMDD_HHMMSS format
-    nameStream << (1900 + localTime->tm_year) << "-";
-    
-    // Ensure month, day, hour, minute, and second are two digits
-    nameStream << (localTime->tm_mon < 9 ? "0" : "") << (localTime->tm_mon + 1) << "-";
-    nameStream << (localTime->tm_mday < 10 ? "0" : "") << localTime->tm_mday << "_";
-    nameStream << (localTime->tm_hour < 10 ? "0" : "") << localTime->tm_hour << ".";
-    nameStream << (localTime->tm_min < 10 ? "0" : "") << localTime->tm_min << ".";
-    nameStream << (localTime->tm_sec < 10 ? "0" : "") << localTime->tm_sec;
-    
-    return nameStream.str() + ".";
-}
-
 string extractFileExtension(const string& urlPath) 
 {
     size_t lastDotPos = urlPath.rfind('.');
@@ -528,8 +503,6 @@ void Request::processHeaders(const string& headerStr)
                 string value = line.substr(colonPos + 2, line.size() - colonPos - 3); // Exclude the carriage return
                 _req_header[key] = value;
                 
-                // If this is the Content-Length header, store its value
-                    // cout << "--> " << key << endl;
                 if(_methode == "POST")
                 {
                     if (key == "Content-Length") 
@@ -557,8 +530,6 @@ void Request::processHeaders(const string& headerStr)
                 throw ResponseCode;
             }
         }
-        // add boundary check
-
         if (_methode == "POST" && !_isContentLength && !_isChunked)
         {
             ResponseCode = 400;
@@ -605,7 +576,6 @@ void Request::uploadCheckers()
     }
     else if (locIndex != -1)
     {
-        // check SLASH
         uploadPath = _serv_conf.getLocs()[locIndex].getUpload()[1];
         uploadPath = removeConsecutiveSlashes(uploadPath);
         if (!uploadPath.empty() && uploadPath[0] == '/')
@@ -784,7 +754,6 @@ void Request::firstComingRequest(string& myBuff, int len)
         {
             ResponseCode = 400;
             throw ResponseCode;
-            // return;
         }
     }
     size_t PORTsize = _serv_conf.getListen().size();
@@ -792,7 +761,6 @@ void Request::firstComingRequest(string& myBuff, int len)
     {
         ResponseCode = 414;
         throw ResponseCode;
-        // return;
     }
 
     // Find the start of the headers
@@ -810,7 +778,6 @@ void Request::firstComingRequest(string& myBuff, int len)
         if(!getReqHeader()["Host"].empty() && dupServerFound(servers_map) != -1)
         {
             string hostt = getReqHeader()["Host"];
-            // servername without :
             string hostVal;
             string port = "";
             if(hostt.find(":") != string::npos)
@@ -1007,7 +974,6 @@ void Request::chunkedHandler(int sock_fd)
             chunkString.erase(0, 2);
             counter -= (chunkSize + 2);
             GetSize();
-            std::cout << chunkSize << std::endl;
         }
 	}
     else
@@ -1091,17 +1057,10 @@ void Request::locationMatcher()
     if(rootLocIndex >= 0 && !_serv_conf.getLocs()[rootLocIndex].getRoot().empty())
         _serv_conf.setRoot(_serv_conf.getLocs()[rootLocIndex].getRoot());
 
-    // if(_methode == "DELETE")
-    // {
-    //     ResponseCode = 0;
-    //     throw ResponseCode;
-    // }
-
     // if DOT is found in url
     if(_url.find("/.") != string::npos && _url.find("/.") == 0 && _url[2] != '.')
         _url.erase(1,1);
 
-    // if(!_url.substr(0, _url.find('/', 1) + 1).empty() && _url.find("/..") != 0)
     if(_url.find("/..") != 0)
     {
         if(_url.find('/', 1) != string::npos)
@@ -1111,55 +1070,36 @@ void Request::locationMatcher()
     }
     if (_url.find("/..") != 0 && firstDirInPath.empty() && rootLocIndex == -1)
     {
-            std::cout <<"..> " << locIndex << std::endl;
         ResponseCode = 404;
         throw ResponseCode;
     }
     else if (_url.find("/..") != 0 && firstDirInPath.empty() && rootLocIndex >= 0)
         firstDirInPath = '/';
 
-    // else if(rootLocIndex >= 0)
-    //     firstDirInPath = '/';
-    // else
-    //     firstDirInPath = _url;
+    if(firstDirInPath[firstDirInPath.size() - 1] == '/')
+        firstDirInPath.erase(firstDirInPath.size());
+    locIndex = _locationPatternMatcher(firstDirInPath);
 
-    
-    // if(rootLocIndex == -1)
-    // {
-        if(firstDirInPath[firstDirInPath.size() - 1] == '/')
-            firstDirInPath.erase(firstDirInPath.size());
-        locIndex = _locationPatternMatcher(firstDirInPath);
-
-        if(locIndex == -1 && rootLocIndex == -1)
-        {
-            ResponseCode = 404;
-            throw ResponseCode;
-        }
-        else if (rootLocIndex >= 0 && locIndex == -1)
-        {
-            locIndex = rootLocIndex;
-            if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
-                pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
-            else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
-                pathToLocation = _serv_conf.getRoot() + _url.substr(1);
-        }
-        else if ((rootLocIndex == -1 && locIndex >= 0) || (rootLocIndex >= 0 && locIndex >= 0))
-        {
-            if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
-                pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(firstDirInPath.size());
-            else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
-                pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
-        }
-
-    // }
-    // else
-    // {
-    //     locIndex = rootLocIndex;
-    //     if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
-    //         pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
-    //     else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
-    //         pathToLocation = _serv_conf.getRoot() + _url.substr(1);
-    // }
+    if(locIndex == -1 && rootLocIndex == -1)
+    {
+        ResponseCode = 404;
+        throw ResponseCode;
+    }
+    else if (rootLocIndex >= 0 && locIndex == -1)
+    {
+        locIndex = rootLocIndex;
+        if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
+            pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(1);
+        else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
+            pathToLocation = _serv_conf.getRoot() + _url.substr(1);
+    }
+    else if ((rootLocIndex == -1 && locIndex >= 0) || (rootLocIndex >= 0 && locIndex >= 0))
+    {
+        if(!_serv_conf.getLocs()[locIndex].getRoot().empty())
+            pathToLocation = _serv_conf.getLocs()[locIndex].getRoot() + _url.substr(firstDirInPath.size());
+        else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
+            pathToLocation = _serv_conf.getRoot() + _url.substr(firstDirInPath.size());
+    }
 
     if(pathToLocation.find("/..") != string::npos)
     {
@@ -1169,7 +1109,6 @@ void Request::locationMatcher()
         {
             ResponseCode = 404;
             throw ResponseCode;
-            // return;
         }
         pathToLocation = rr;
         pathToLocation += "/";
@@ -1179,7 +1118,6 @@ void Request::locationMatcher()
             {
                 ResponseCode = 403;
                 throw ResponseCode;
-                // return;
             }
         }
         else if(_serv_conf.getLocs()[locIndex].getRoot().empty())
@@ -1188,20 +1126,23 @@ void Request::locationMatcher()
             {
                 ResponseCode = 403;
                 throw ResponseCode;
-                // return;
             }
         }
-        std::cout << "HNAA -- " << pathToLocation << std::endl;
     }
 
+    if(_serv_conf.getLocs()[locIndex].isRedirected())
+    {
+        _url = _serv_conf.getLocs()[locIndex].getRedirection();
+        ResponseCode = 301;
+        throw ResponseCode;
+    }
+    if(_isFile(pathToLocation.c_str()) && !isUserPermitted(pathToLocation.c_str()) && _url != "/favicon.ico")
+    {
+        ResponseCode = 403;
+        throw ResponseCode;
+    }
     if(!isDirectory(pathToLocation.c_str()) && !_isFile(pathToLocation.c_str()) && _url != "/favicon.ico")
     {
-        // if(_serv_conf.getLocs()[locIndex].isRedirected())
-        // {
-        //     _url = firstDirInPath;
-        //     ResponseCode = 301;
-        //     throw ResponseCode;
-        // }
         std::string tmp = pathToLocation.substr(0, pathToLocation.find_last_of("?"));
         if (_serv_conf.getLocs()[locIndex].getCgi().compare("on") || !_isFile(tmp.c_str()))
         {
@@ -1209,7 +1150,7 @@ void Request::locationMatcher()
             throw ResponseCode;
         }
     }
-    if(firstDirInPath[firstDirInPath.size() - 1] != '/' && locIndex != rootLocIndex )
+    if(firstDirInPath[firstDirInPath.size() - 1] != '/' && locIndex != rootLocIndex)
     {
         if(!_isFile(pathToLocation.c_str()))
             _url += '/';
@@ -1233,10 +1174,10 @@ void Request::Requesting(int _socFd)
     {
         memset(_buffer, 0, SIZE);
         bytesRead = read(_socFd, _buffer, SIZE);
-        if (bytesRead < 0)
+        if (bytesRead <= 0)
         {
-            ResponseCode = 500;
-            throw ResponseCode;
+            ResponseSent = true;
+            throw 200;
         }
 
         if(!headersParsed)
@@ -1396,7 +1337,6 @@ void Request::sendDirResponse(int clientSocket, const string content, int errCod
 
 string Request::getErrorPath(int pageCode)
 {
-    // if(pageCode)                       check code validity
 	map<int, string>::iterator it = _errorPath.begin();
 	for(;it != _errorPath.end(); it++)
     {
@@ -1408,7 +1348,6 @@ string Request::getErrorPath(int pageCode)
 
 string Request::getErrorStatus(int pageCode)
 {
-    // if(pageCode)                       check code validity
 	map<int, string>::iterator it = _errorStatus.begin();
 	for(;it != _errorStatus.end(); it++)
     {
@@ -1523,21 +1462,14 @@ int Request::isLocation(string &_url)
     return -1;
 }
 
-//// delete
-// DELETE METHOD NADYA CHAMA
 bool Request::isFile(const char* path) 
 {
-    // tra mushkil fch knhyd perm lwhd direc katji hta ktlqa f_ok 
     struct stat file_stat;
 
-    // Use stat to get information about the file
     if (stat(path, &file_stat) == 0) 
     {
-        // Check if it's a regular file
         if (S_ISREG(file_stat.st_mode)) 
             return (true);
-        else 
-            return (false);
     }
     return (false);
 }
@@ -1612,7 +1544,6 @@ bool Request::RemoveDirectory(const char *path)
                 }
                 else if(ptr_dirent->d_type == DT_REG)
                 {
-                    // cout << path_name << endl;
                     if (CheckPermissions(path_name.c_str()) ==  true)
                         remove(path_name.c_str());
                 }
@@ -1622,7 +1553,10 @@ bool Request::RemoveDirectory(const char *path)
     if (check_dir_is_empty(path))
         rmdir(path);
     else
+    {
+        closedir(ptr_dir);
         return false;
+    }
     closedir(ptr_dir);
     return (true);
 }
@@ -1762,19 +1696,12 @@ void Request::dirReqHandling(int clientSocket)
         else if(mainLoc.isIndexed() && !cgiDone && mainLoc.locHasGETallowed())
         {
             pathToLocation += indexFileOnly;
-            // string fullPath;
-            // if(!mainLoc.getRoot().empty())
-            //     fullPath = mainLoc.getRoot() + mainLoc.getIndex();
-            // else if(mainLoc.getRoot().empty())
-            //     fullPath = _serv_conf.getRoot() + mainLoc.getIndex();
             
             pathToLocation = removeConsecutiveSlashes(pathToLocation);
             string ext = pathToLocation.substr(pathToLocation.find_last_of('.') + 1);
             if(_isFile(pathToLocation.c_str()) && isUserPermitted(pathToLocation))
             {
                 sendHtmlResponseFile(clientSocket, 200, " OK", pathToLocation, getContentType(ext));
-                // ResponseCode = 200;
-                // throw ResponseCode;
             }
             else if(_isFile(pathToLocation.c_str()) && !isUserPermitted(pathToLocation))
             {
@@ -1826,7 +1753,6 @@ void Request::fileReqHandling(int clientSocket)
         {
             ResponseCode = 415;
             throw ResponseCode;
-            // extent = "text/plain";
         }
         sendHtmlResponseFile(clientSocket, 200, _errorStatus[200], pathToLocation, extent);
         ResponseCode = 0;
@@ -1932,7 +1858,6 @@ void Request::handleContentRequest(int clientSocket)
         }
         if (ResponseCode)
         {
-            cout << "~~> ERROR CODE CATCHED = " << _errorStatus[ResponseCode] << "<~~" << endl;
             generateErrorResponse(clientSocket, ResponseCode, _errorStatus[ResponseCode]);
         }
         if (ResponseSent)

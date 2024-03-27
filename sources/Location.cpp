@@ -8,11 +8,6 @@ Location::Location()
 	_redirection = "";
 	_root = "";
 	_cgi = "off";
-	// vector<string> vec(2);
-	// vec[0] = "";
-	// vec[1] = "";
-	// _cgiPHP = vec;
-	// _cgiPY = vec;
 }
 
 Location::Location(const Location& obj)
