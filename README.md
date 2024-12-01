@@ -1,5 +1,41 @@
-CRVR: Project Overview
+# CRVR
 
-CRVR is a project that explores the basics of the Hypertext Transfer Protocol (HTTP) and its role in the World Wide Web. This project involves building a simple HTTP server using C/C++. The server can handle requests from web browsers, process them, and send back web pages. It supports essential HTTP methods like GET, POST, and DELETE, and includes features for managing file uploads, executing CGI scripts, and serving static websites. Designed to be resilient and compatible with modern web browsers, CRVR aims to provide a hands-on understanding of how web servers work and communicate over the internet.
+## Overview
 
-To run CRVR, you need to modify the configuration file and execute the server with the configuration file path as an argument.
+The **CRVR** project involves building a simple HTTP server from scratch, compliant with a subset of the HTTP/1.1 protocol. This project mimics the functionality of real-world web servers, such as handling requests and serving responses.
+
+## Features
+
+- **HTTP/1.1 Compliance**: Implements request parsing, response formatting, and proper handling of HTTP methods (e.g., GET, POST, DELETE).
+- **Static and Dynamic Content**: Serves static files and supports dynamic responses.
+- **Multiple Connections**: Handles multiple client requests simultaneously using non-blocking I/O or multi-threading.
+- **Configuration Parsing**: Reads and applies server settings (e.g., ports, routes, file paths) from a configuration file.
+- **Error Handling**: Responds with appropriate HTTP status codes (e.g., 404 Not Found, 500 Internal Server Error).
+
+### Example
+
+The server can process requests like:
+
+```bash
+curl -X GET http://localhost:8080/index.html
+```
+
+And respond with the requested file or an error message if not found.
+
+## Key Concepts
+
+- **Socket Programming**: Use system calls like `socket`, `bind`, `listen`, and `accept` to manage client-server communication.
+- **HTTP Protocol**: Parse requests and construct responses according to the HTTP/1.1 standard.
+- **Concurrency**: Manage multiple client connections using multi-threading or event-driven architectures.
+- **Configuration Management**: Design a flexible parser for server configuration.
+
+## Learning Outcomes
+
+By completing **CRVR**, you will:
+
+- Understand the inner workings of web servers and the HTTP protocol.
+- Gain hands-on experience with low-level socket programming.
+- Learn techniques for handling concurrency and asynchronous I/O.
+- Improve problem-solving and debugging skills in system-level programming.
+
+This project bridges network programming and web development, offering a deep dive into the mechanics of web servers and their interaction with clients.
